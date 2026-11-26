@@ -1,0 +1,39 @@
+# env / secrets
+.env
+.env.*
+!.env.example
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+.coverage
+htmlcov/
+
+# node
+node_modules/
+dist/
+dev-dist/
+.vite/
+coverage/
+*.tsbuildinfo
+
+# models and data (published on Hugging Face instead)
+*.onnx
+*.pt
+ml/data/raw/
+ml/data/frames/
+ml/data/datasets/
+backend/.model_cache/
+
+# misc
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+playwright-report/
+test-results/
