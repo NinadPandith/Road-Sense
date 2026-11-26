@@ -395,6 +395,34 @@ def get_scoring(
     return scoring
 
 
+class SettingsVersionOut(BaseModel):
+    id: int
+    created_at: datetime
+    created_by: str | None
+    values: SettingsValues
+
+
+@router.get("/settings/history", response_model=list[SettingsVersionOut])
+def settings_history(
+    _: Staff = Depends(get_staff), db: Session = Depends(get_db)
+) -> list[SettingsVersionOut]:
+    rows = db.execute(
+        select(SettingsVersion, Profile.full_name)
+        .outerjoin(Profile, Profile.id == SettingsVersion.created_by)
+        .order_by(SettingsVersion.id.desc())
+        .limit(20)
+    ).all()
+    return [
+        SettingsVersionOut(
+            id=v.id,
+            created_at=v.created_at,
+            created_by=name,
+            values=SettingsValues.model_validate(v.values),
+        )
+        for v, name in rows
+    ]
+
+
 @router.post("/settings", response_model=SettingsValues)
 def save_scoring(
     body: SettingsValues,

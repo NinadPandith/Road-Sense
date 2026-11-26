@@ -214,6 +214,9 @@ def test_settings_change_is_versioned_and_recalculates(api, engineer, db):
     )
     db.expire_all()
     assert db.get(Defect, uuid.UUID(did)).priority == pytest.approx(before / 2, rel=1e-3)
+    history = api.get("/settings/history", headers=engineer).json()
+    assert history[0]["created_by"] == "Engineer One"
+    assert history[0]["values"]["road_weights"]["major"] == 0.5
 
 
 def test_nightly_recalculate_needs_cron_secret(api):
