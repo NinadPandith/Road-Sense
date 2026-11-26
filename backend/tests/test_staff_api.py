@@ -225,3 +225,34 @@ def test_nightly_recalculate_needs_cron_secret(api):
 
 def test_me(api, engineer):
     assert api.get("/me", headers=engineer).json()["role"] == "engineer"
+
+
+def test_accepting_needs_review_uses_engineer_severity(api, engineer, db, tmp_path):
+    from app.api.deps import get_services
+    from tests.fakes import FakeDetector, fake_services
+
+    det = FakeDetector()
+    det.next = []
+    api.app.dependency_overrides[get_services] = lambda: fake_services(tmp_path, det)
+    code = report(api)["tracking_code"]
+    did = api.post(f"/reports/{code}/send-anyway").json()["defect_id"]
+    r = api.patch(
+        f"/defects/{did}/status",
+        data={"to_status": "reported", "damage_class": "pothole", "severity_label": "dangerous"},
+        headers=engineer,
+    )
+    body = r.json()
+    assert body["status"] == "reported" and body["damage_class"] == "pothole"
+    assert body["severity_label"] == "dangerous" and body["priority"] > 0
+
+
+def test_not_a_defect_rejects_and_leaves_the_list(api, engineer):
+    did = report(api)["defect_id"]
+    r = api.patch(
+        f"/defects/{did}/status",
+        data={"to_status": "rejected", "reason": "speed breaker"},
+        headers=engineer,
+    )
+    assert r.json()["status"] == "rejected"
+    assert api.get("/defects", headers=engineer).json()["total"] == 0
+    assert api.get("/defects?status=rejected", headers=engineer).json()["total"] == 1

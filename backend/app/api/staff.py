@@ -41,7 +41,7 @@ from app.schemas.defects import (
 )
 from app.services import images
 from app.services import status as status_service
-from app.services.defects import recalculate_all_open
+from app.services.defects import recalculate, recalculate_all_open
 from app.services.pipeline import Services
 from app.services.queries import (
     DefectFilters,
@@ -203,6 +203,8 @@ async def patch_status(
     to_status: DefectStatus = Form(...),
     reason: str | None = Form(None, max_length=200),
     fixed_photo: UploadFile | None = File(None),
+    damage_class: DamageClass | None = Form(None),
+    severity_label: SeverityLabel | None = Form(None),
     staff: Staff = Depends(require_engineer),
     db: Session = Depends(get_db),
     services: Services = Depends(get_services),
@@ -219,7 +221,12 @@ async def patch_status(
         rgb, _ = anonymise(rgb)
         photo_path = f"{defect.id}/{datetime.now(UTC):%Y%m%dT%H%M%S}.jpg"
         services.storage.upload(FIXED_PHOTOS, photo_path, images.encode_jpeg(rgb), "image/jpeg")
+    was_review = defect.status == DefectStatus.needs_review
     status_service.change_status(db, defect, to_status, staff.id, reason, photo_path)
+    if was_review and to_status == DefectStatus.reported:
+        # Accept: the engineer says what the AI couldn't (B11).
+        status_service.accept_review(defect, damage_class, severity_label)
+        recalculate(db, defect, scoring)
     db.flush()
     return _detail(db, services, defect_id, scoring)
 

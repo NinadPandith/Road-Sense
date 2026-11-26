@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.errors import ApiError
 from app.models import Defect, StatusHistory
+from app.models.enums import DamageClass, SeverityLabel
 from app.models.enums import DefectStatus as S
 
 ALLOWED: dict[S, set[S]] = {
@@ -55,3 +56,24 @@ def change_status(
     elif to == S.fixed:
         defect.fixed_at = now
         defect.fixed_photo_path = fixed_photo_path
+
+
+# Score given to an engineer's own severity label (the middle of each band).
+LABEL_SCORE = {
+    SeverityLabel.minor: 0.25,
+    SeverityLabel.moderate: 0.55,
+    SeverityLabel.dangerous: 0.85,
+}
+
+
+def accept_review(
+    defect: Defect, damage_class: DamageClass | None, severity_label: SeverityLabel | None
+) -> None:
+    """A needs-review defect accepted by an engineer gets their damage type and severity,
+    so it can be ranked. Without them it keeps no severity (priority 0) until a report scores it.
+    """
+    if damage_class is not None:
+        defect.damage_class = damage_class
+    if severity_label is not None and defect.severity_score is None:
+        defect.severity_label = severity_label
+        defect.severity_score = LABEL_SCORE[severity_label]
