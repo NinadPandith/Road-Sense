@@ -1,0 +1,326 @@
+{
+  "app": {
+    "name": "RoadSense",
+    "skipToContent": "Skip to content",
+    "loading": "Loading…",
+    "back": "Back",
+    "ok": "OK",
+    "close": "Close",
+    "tryAgain": "Try again"
+  },
+  "nav": {
+    "home": "Home",
+    "track": "Track",
+    "map": "Map",
+    "mainMenu": "Main menu"
+  },
+  "home": {
+    "headline": "Spotted a pothole?",
+    "subtext": "Report it in 30 seconds. No sign-up needed.",
+    "report": "Report a pothole",
+    "track": "Track my report",
+    "drive": "Drive mode",
+    "mapLink": "See all reported potholes on the map",
+    "resultsLink": "How well RoadSense works",
+    "engineerLink": "Engineer sign in"
+  },
+  "permission": {
+    "explain": "RoadSense needs your camera to photograph the pothole and your location to put it on the map.",
+    "allow": "Allow camera and location"
+  },
+  "capture": {
+    "title": "Report a pothole",
+    "instruction": "Point your camera at the pothole. Stand 1–2 m away.",
+    "takePhoto": "Take photo",
+    "chooseGallery": "Choose from gallery",
+    "gettingLocation": "Getting your location…",
+    "locationFound": "Location found (about {{metres}} m)"
+  },
+  "review": {
+    "title": "Check your report",
+    "photoAlt": "Your photo of the pothole",
+    "pinHint": "Is the pin on the pothole? Drag it if not.",
+    "noteLabel": "Add a note (optional)",
+    "notePlaceholder": "e.g. near the bus stop",
+    "noteCount": "{{count}} of 200 characters",
+    "submit": "Submit report",
+    "privacy": "We blur faces and number plates. We don't collect your name or number.",
+    "retake": "Retake photo"
+  },
+  "uploading": {
+    "progress": "Checking your photo…",
+    "slow": "Still checking…"
+  },
+  "result": {
+    "aiFound": "Our AI found a {{type}}",
+    "titleNew": "Thanks! Your report is on the map.",
+    "titleMerged": "Thanks! Added to an existing report.",
+    "mergedDetail_one": "{{count}} person has reported this spot. More reports help it get fixed sooner.",
+    "mergedDetail_other": "{{count}} people have reported this spot. More reports help it get fixed sooner.",
+    "titleNeedsReview": "Thanks. An engineer will check your photo.",
+    "titleProcessing": "We've saved your report and will finish it shortly.",
+    "codeLabel": "Your tracking code:",
+    "copy": "Copy",
+    "copyAria": "Copy tracking code",
+    "copied": "Copied",
+    "share": "Share",
+    "shareAria": "Share tracking link",
+    "shareText": "I reported a pothole on RoadSense. Track it here:",
+    "done": "Done",
+    "trackThis": "Track this report",
+    "severityTitle": "Severity: {{label}}",
+    "because": "{{label}} because it is {{reason}}.",
+    "photoAlt": "Photo of reported pothole, {{severity}}",
+    "breakdown": "Why this severity"
+  },
+  "track": {
+    "title": "Track a report",
+    "fieldLabel": "Enter your tracking code",
+    "placeholder": "RS-7K2Q",
+    "submit": "Track",
+    "myReports": "Reports from this phone",
+    "reportedOn": "Reported on {{date}}",
+    "reportCount_one": "{{count}} person reported this spot",
+    "reportCount_other": "{{count}} people reported this spot",
+    "photoAlt": "Photo of the reported pothole",
+    "fixedPhotoAlt": "Photo after the repair",
+    "fixedPhoto": "After the repair",
+    "shareAria": "Share this status page",
+    "noDamage": "We couldn't find road damage in this photo, and it was not sent to an engineer."
+  },
+  "status": {
+    "reported": "Reported",
+    "needs_review": "Needs review",
+    "verified": "Verified",
+    "assigned": "Assigned",
+    "fixed": "Fixed",
+    "rejected": "Rejected",
+    "citizen": {
+      "reported": "Reported on {{date}}. Waiting for an engineer to check.",
+      "needs_review": "Our AI wasn't sure. An engineer will check your photo.",
+      "verified": "An engineer confirmed this pothole.",
+      "assigned": "A repair has been planned.",
+      "fixed": "Marked fixed on {{date}}. Thanks for reporting.",
+      "rejected": "An engineer found no road damage at this spot."
+    },
+    "action": {
+      "reported": "Accept",
+      "verified": "Verify",
+      "assigned": "Assign repair",
+      "fixed": "Mark fixed",
+      "rejected": "Not a defect"
+    }
+  },
+  "severity": {
+    "minor": "Minor",
+    "moderate": "Moderate",
+    "dangerous": "Dangerous",
+    "unscored": "Not scored",
+    "explain": {
+      "minor": "Small damage. Worth fixing, not urgent.",
+      "moderate": "Noticeable damage. Can hurt tyres and slow traffic.",
+      "dangerous": "Deep or large damage in the wheel path. Ride carefully here."
+    },
+    "factor": {
+      "size": "Size",
+      "depth": "Depth",
+      "type": "Damage type",
+      "position": "Position on road"
+    },
+    "level": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "unknown": "Not measured"
+    },
+    "aiSuggestion": "AI suggestion"
+  },
+  "damage": {
+    "pothole": "Pothole",
+    "alligator_crack": "Alligator crack",
+    "crack_across": "Crack across road",
+    "crack_along": "Crack along road",
+    "unknown": "Not sure"
+  },
+  "confidence": {
+    "very_likely": "Very likely",
+    "likely": "Likely",
+    "possible": "Possible"
+  },
+  "road": {
+    "major": "Main road",
+    "secondary": "Secondary road",
+    "tertiary": "Local road",
+    "residential": "Residential street",
+    "unknown": "Unknown road"
+  },
+  "errors": {
+    "cameraBlocked": "Camera access is off. Turn it on in your browser settings, or choose a photo from your gallery.",
+    "locationBlocked": "We can't see your location. Drag the pin to where the pothole is.",
+    "weakGps": "Your location is approximate. Please check the pin.",
+    "noDamage": "We couldn't find road damage in this photo. Try a closer photo in good light.",
+    "tooDark": "This photo is too dark or blurry to check.",
+    "offline": "You're offline. We'll send your report when you're back online.",
+    "slowServer": "Still checking… We've saved your report and will finish it shortly.",
+    "uploadFailed": "Your report didn't send. Check your connection and try again.",
+    "outsidePilot": "RoadSense works only in {{area}} right now.",
+    "rateLimited": "Too many reports from this network. Please try again in an hour.",
+    "wrongCode": "No report found with this code. Check it and try again.",
+    "invalidImage": "This file is not a photo we can read. Choose a JPEG, PNG or WebP image.",
+    "generic": "That didn't work. Please try again.",
+    "loadFailed": "We couldn't load this page. Check your connection and try again.",
+    "wrongPassword": "Email or password is incorrect.",
+    "locked": "Too many attempts. Try again in 10 minutes.",
+    "sessionExpired": "Please sign in again to continue.",
+    "demoReadOnly": "The demo account is read only. Sign in as an engineer to make changes.",
+    "invalidTransition": "This status change isn't allowed from the current status.",
+    "notConfigured": "Sign in isn't set up yet. Add the Supabase settings to the frontend environment."
+  },
+  "buttons": {
+    "retakePhoto": "Retake photo",
+    "sendAnyway": "Send anyway",
+    "chooseGallery": "Choose from gallery",
+    "showCode": "Show my code",
+    "reportPothole": "Report a pothole",
+    "clearFilters": "Clear filters",
+    "signIn": "Sign in",
+    "retry": "Retry",
+    "continue": "Continue",
+    "openSettings": "Open settings"
+  },
+  "empty": {
+    "map": "No potholes reported yet. Be the first.",
+    "repairs": "No defects match these filters.",
+    "myReports": "You haven't reported anything from this phone yet.",
+    "dashboard": "No reports yet. Share the report link to get started."
+  },
+  "drive": {
+    "title": "Drive mode",
+    "safety": "Mount your phone before you ride. Don't touch it while moving.",
+    "understand": "I understand",
+    "setup": "Point the camera at the road, about 5–10 m ahead.",
+    "start": "Start",
+    "stop": "Stop",
+    "counter": "{{found}} found · {{sent}} sent · {{distance}}",
+    "summary": "Ride complete. {{found}} potholes found over {{distance}}.",
+    "comingSoon": "Live detection in the browser arrives in the next update. For now, use Report a pothole."
+  },
+  "publicMap": {
+    "title": "Reported potholes",
+    "fixedLegend": "Fixed (last 30 days)",
+    "legend": "Legend"
+  },
+  "results": {
+    "title": "Results",
+    "intro": "How well RoadSense works, measured on road images it never saw during training.",
+    "pending": "The numbers appear here once the experiments are finished."
+  },
+  "admin": {
+    "loginTitle": "Engineer sign in",
+    "email": "Email",
+    "password": "Password",
+    "demo": "Try the demo account (read only)",
+    "demoHint": "Demo login: {{email}} · password {{password}}",
+    "signOut": "Sign out",
+    "demoBanner": "You're using the read-only demo account.",
+    "nav": {
+      "dashboard": "Dashboard",
+      "repairs": "Repair list",
+      "surveys": "Surveys",
+      "analytics": "Analytics",
+      "settings": "Settings"
+    },
+    "kpi": {
+      "open": "Open defects",
+      "dangerousOpen": "Dangerous, open",
+      "newWeek": "New this week",
+      "fixedWeek": "Fixed this week"
+    },
+    "fixFirst": "Fix these first",
+    "needsReviewBanner_one": "{{count}} photo needs your review",
+    "needsReviewBanner_other": "{{count}} photos need your review",
+    "openDetails": "Open details",
+    "heatmap": "Heatmap",
+    "rank": "Rank",
+    "photo": "Photo",
+    "type": "Type",
+    "severity": "Severity",
+    "priority": "Priority",
+    "roadCol": "Road",
+    "ward": "Ward",
+    "reports": "Reports",
+    "age": "Age (days)",
+    "statusCol": "Status",
+    "select": "Select",
+    "selectAll": "Select all on this page",
+    "selectRow": "Select defect ranked {{rank}}",
+    "markAssigned": "Mark assigned",
+    "markFixed": "Mark fixed",
+    "exportCsv": "Export CSV",
+    "exportPdf": "Export PDF",
+    "bulkDone_one": "{{count}} defect updated",
+    "bulkDone_other": "{{count}} defects updated",
+    "bulkSkipped_one": "{{count}} skipped because that status change isn't allowed",
+    "bulkSkipped_other": "{{count}} skipped because that status change isn't allowed",
+    "filters": "Filters",
+    "allWards": "All wards",
+    "allRoads": "All road types",
+    "allSeverities": "All severities",
+    "openStatuses": "All open",
+    "allStatuses": "All statuses",
+    "dateFrom": "From",
+    "dateTo": "To",
+    "sortBy": "Sort by",
+    "sort": {
+      "priority": "Priority",
+      "severity": "Severity",
+      "age": "Oldest first",
+      "-age": "Newest first",
+      "reports": "Most reports"
+    },
+    "pageOf": "Page {{page}} of {{pages}}",
+    "previous": "Previous page",
+    "next": "Next page",
+    "detail": {
+      "photos": "Photos",
+      "whySeverity": "Why this severity",
+      "whyPriority": "Why this priority",
+      "reportsOnMap": "Reports on map",
+      "history": "History",
+      "status": "Status",
+      "changeTo": "Change status",
+      "reason": "Reason (optional)",
+      "fixedPhoto": "After-repair photo (optional)",
+      "save": "Save status",
+      "noHistory": "No changes yet.",
+      "system": "System",
+      "rankOf": "Rank #{{rank}}",
+      "score": "Score {{score}}",
+      "coordinates": "Coordinates",
+      "nearPlace": "Near {{place}}",
+      "reopened_one": "Re-opened {{count}} time",
+      "reopened_other": "Re-opened {{count}} times",
+      "term": {
+        "S": "Severity (S)",
+        "R": "Road importance (R)",
+        "n": "Reports (n)",
+        "t": "Days open (t)",
+        "B": "Near school or hospital (B)"
+      },
+      "formula": "Priority = S × R × (1 + 0.1·min(n, 10)) × (1 + 0.02·min(t, 30)) × B",
+      "reportFrom": "{{source}} report {{code}}",
+      "source": {
+        "citizen": "Citizen",
+        "drive": "Drive mode",
+        "survey": "Survey"
+      },
+      "mergeCircle": "{{radius}} m merge circle",
+      "notFound": "No defect found with this ID."
+    },
+    "comingSoon": "This screen arrives in the next update."
+  },
+  "time": {
+    "justNow": "Just now",
+    "yesterday": "Yesterday"
+  }
+}
