@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     cron_secret: str = "change-me"
     ip_hash_salt: str = "change-me"
     pilot_area_path: str = ""
+    pilot_area_name: str = "the pilot area"
+    public_api_url: str = "http://localhost:8000"
+    osm_lookup_enabled: bool = True
 
     max_upload_mb: int = 50
     rate_limit_per_hour: int = 10

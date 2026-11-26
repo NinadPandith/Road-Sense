@@ -5,7 +5,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import health
+from app.api import health, reports
 from app.core.config import get_settings
 from app.core.errors import install_error_handlers
 
@@ -28,6 +28,14 @@ def create_app() -> FastAPI:
     )
     install_error_handlers(app)
     app.include_router(health.router)
+    app.include_router(reports.router)
+    if settings.environment == "development":
+        from fastapi.staticfiles import StaticFiles
+
+        from app.services.storage import LOCAL_ROOT
+
+        LOCAL_ROOT.mkdir(exist_ok=True)
+        app.mount("/local-storage", StaticFiles(directory=LOCAL_ROOT), name="local-storage")
     return app
 
 

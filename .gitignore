@@ -37,3 +37,4 @@ backend/.model_cache/
 !.vscode/extensions.json
 playwright-report/
 test-results/
+backend/.local_storage/
