@@ -1,9 +1,8 @@
 import { lazy, Suspense } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Route, Routes } from 'react-router-dom'
+import { Link, Route, Routes } from 'react-router-dom'
 import { AdminLayout } from './components/AdminLayout'
 import { CitizenLayout } from './components/CitizenLayout'
-import { Placeholder } from './components/Placeholder'
 import { CapturePage } from './pages/citizen/CapturePage'
 import { HomePage } from './pages/citizen/HomePage'
 import { ResultPage } from './pages/citizen/ResultPage'
@@ -17,6 +16,7 @@ const RepairsPage = lazy(() => import('./pages/admin/RepairsPage'))
 const DefectDetailPage = lazy(() => import('./pages/admin/DefectDetailPage'))
 const PublicMapPage = lazy(() => import('./pages/citizen/PublicMapPage'))
 const DrivePage = lazy(() => import('./pages/citizen/DrivePage'))
+const ResultsPage = lazy(() => import('./pages/citizen/ResultsPage'))
 const SurveysPage = lazy(() => import('./pages/admin/SurveysPage'))
 const AnalyticsPage = lazy(() => import('./pages/admin/AnalyticsPage'))
 const SettingsPage = lazy(() => import('./pages/admin/SettingsPage'))
@@ -36,7 +36,7 @@ export default function App() {
           <Route path="track/:code" element={<TrackPage />} />
           <Route path="drive" element={<DrivePage />} />
           <Route path="map" element={<PublicMapPage />} />
-          <Route path="results" element={<Placeholder title={t('results.title')} message={`${t('results.intro')} ${t('results.pending')}`} />} />
+          <Route path="results" element={<ResultsPage />} />
         </Route>
         <Route path="admin/login" element={<LoginPage />} />
         <Route path="admin" element={<AdminLayout />}>
@@ -48,9 +48,21 @@ export default function App() {
           <Route path="settings" element={<SettingsPage />} />
         </Route>
         <Route path="*" element={<CitizenLayout />}>
-          <Route path="*" element={<Placeholder title={t('errors.wrongCode')} message={t('errors.loadFailed')} />} />
+          <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
     </Suspense>
+  )
+}
+
+function NotFound() {
+  const { t } = useTranslation()
+  return (
+    <section className="flex flex-col items-start gap-4">
+      <h1 className="text-2xl font-bold">{t('app.notFound')}</h1>
+      <Link to="/" className="btn btn-primary">
+        {t('app.goHome')}
+      </Link>
+    </section>
   )
 }

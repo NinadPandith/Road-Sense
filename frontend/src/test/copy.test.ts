@@ -21,8 +21,11 @@ describe('en.json copy rules', () => {
 
   it('has no ALL CAPS words except GPS, AI, PDF, CSV, file formats and codes', () => {
     const allowed = new Set(['GPS', 'AI', 'PDF', 'CSV', 'RS', 'ID', 'OK', 'JPEG', 'PNG', 'GPX', 'MP4', 'MB'])
-    const bad = all.filter(([, s]) =>
-      (s.match(/\b[A-Z]{2,}\b/g) ?? []).some((w) => !allowed.has(w) && !/RS-/.test(s)),
+    // Technical names (RDD, mAP, CPU, FPS) are allowed on the Results page only.
+    const bad = all.filter(
+      ([key, s]) =>
+        !key.startsWith('results.') &&
+        (s.match(/\b[A-Z]{2,}\b/g) ?? []).some((w) => !allowed.has(w) && !/RS-/.test(s)),
     )
     expect(bad).toEqual([])
   })

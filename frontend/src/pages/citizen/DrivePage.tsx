@@ -87,6 +87,8 @@ function DriveSession() {
   const [error, setError] = useState<'camera' | 'gps' | 'model' | null>(null)
   const [slow, setSlow] = useState<'no' | 'ask' | 'fallback'>('no')
   const [stats, setStats] = useState<Stats>({ found: 0, queued: 0, sent: 0, metres: 0 })
+  const fpsRef = useRef(0)
+  const [fps, setFps] = useState(0)
   const [waiting, setWaiting] = useState(0)
   const [summary, setSummary] = useState<{ route: [number, number][]; points: [number, number][] }>({ route: [], points: [] })
 
@@ -241,8 +243,12 @@ function DriveSession() {
         await save(finished)
       }
 
-      // Speed check after a short warm-up.
+      // Speed check after a short warm-up; the average is shown on the summary (experiment E6).
       times.push(performance.now() - started)
+      if (times.length > 5) {
+        const recent = times.slice(-30)
+        fpsRef.current = 1000 / (recent.reduce((x, y) => x + y, 0) / recent.length)
+      }
       if (times.length === 15 && slowModeRef.current === 'no') {
         const fps = 1000 / (times.slice(5).reduce((x, y) => x + y, 0) / 10)
         if (fps < SLOW_FPS) {
@@ -289,6 +295,7 @@ function DriveSession() {
     streamRef.current?.getTracks().forEach((tr) => tr.stop())
     await wakeLock.current?.release().catch(() => undefined)
     setSummary({ route: [...routeRef.current], points: [...pointsRef.current] })
+    setFps(Math.min(fpsRef.current, TARGET_FPS * 10))
     setState('stopped')
   }
 
@@ -303,6 +310,7 @@ function DriveSession() {
           {t('drive.summary', { found: stats.found, distance: formatDistance(stats.metres) })}
         </p>
         <p className="text-slate-700">{counter}</p>
+        {fps > 0 && <p className="text-sm text-slate-600">{t('drive.speed', { fps: fps.toFixed(1) })}</p>}
         {route.length > 0 && (
           <div className="h-64 overflow-hidden rounded-xl border border-slate-200">
             <MapContainer bounds={route} className="h-full w-full">
