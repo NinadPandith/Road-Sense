@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import health, reports, staff
+from app.api import health, reports, staff, surveys
 from app.core.config import get_settings
 from app.core.errors import install_error_handlers
 
@@ -30,9 +30,20 @@ def _warm_up() -> None:
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    if get_settings().environment == "production":
+    settings = get_settings()
+    worker = None
+    if settings.environment == "production":
         threading.Thread(target=_warm_up, daemon=True).start()
+    if settings.survey_worker_enabled:
+        from app.api.deps import default_services
+        from app.core.db import get_sessionmaker
+        from app.services.surveys import SurveyWorker, committing
+
+        worker = SurveyWorker(lambda: committing(get_sessionmaker()), default_services())
+        worker.start()
     yield
+    if worker:
+        worker.stop()
 
 
 def create_app() -> FastAPI:
@@ -54,6 +65,7 @@ def create_app() -> FastAPI:
     app.include_router(health.router)
     app.include_router(reports.router)
     app.include_router(staff.router)
+    app.include_router(surveys.router)
     if settings.environment == "development":
         from fastapi.staticfiles import StaticFiles
 

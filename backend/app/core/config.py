@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     pilot_area_name: str = "the pilot area"
     public_api_url: str = "http://localhost:8000"
     osm_lookup_enabled: bool = True
+    survey_worker_enabled: bool = False
 
     max_upload_mb: int = 50
     rate_limit_per_hour: int = 10

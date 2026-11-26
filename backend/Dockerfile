@@ -6,6 +6,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
     ENVIRONMENT=production \
+    SURVEY_WORKER_ENABLED=true \
     PORT=8000
 
 COPY --from=ghcr.io/astral-sh/uv:0.8 /uv /usr/local/bin/uv

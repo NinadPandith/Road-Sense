@@ -179,6 +179,24 @@ def process_report(
     if not images.measure_quality(rgb).ok:
         raise ApiError("image_too_dark", 422)
 
+    return process_frame(db, services, settings, rgb, inp, now=now)
+
+
+def process_frame(
+    db: Session,
+    services: Services,
+    settings: SettingsValues,
+    rgb: np.ndarray,
+    inp: ReportInput,
+    dets: list[Detection] | None = None,
+    now: datetime | None = None,
+) -> ReportResult:
+    """Steps 2 and 4-9 for an image that is already blurred and checked.
+
+    The survey worker passes `dets` it has already computed, so frames are not detected twice.
+    """
+    now = now or datetime.now(UTC)
+
     # 2. Report row.
     report = Report(
         tracking_code=unique_tracking_code(db),
@@ -197,7 +215,8 @@ def process_report(
     db.flush()
 
     # 4. Detect.
-    dets = services.get_detector().detect(rgb, settings.min_confidence)
+    if dets is None:
+        dets = services.get_detector().detect(rgb, settings.min_confidence)
     if not dets:
         report.status = ReportStatus.no_damage
         if inp.source == ReportSource.citizen:  # kept so "Send anyway" can go to review
