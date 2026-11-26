@@ -1,0 +1,9 @@
+.venv
+.pytest_cache
+.ruff_cache
+__pycache__
+.local_storage
+.model_cache
+models
+tests
+*.onnx

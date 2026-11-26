@@ -1,6 +1,8 @@
 """RoadSense FastAPI application."""
 
 import logging
+import threading
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,6 +12,27 @@ from app.core.config import get_settings
 from app.core.errors import install_error_handlers
 
 logging.basicConfig(level=logging.INFO)
+log = logging.getLogger(__name__)
+
+
+def _warm_up() -> None:
+    """Load the models in the background so the first report after a cold start is fast."""
+    from app.services.depth import get_depth_estimator
+    from app.services.detect import get_detector
+
+    try:
+        get_detector()
+        get_depth_estimator()
+        log.info("Models loaded")
+    except Exception as exc:  # noqa: BLE001 - the API still serves tracking and staff pages
+        log.warning("Model warm-up failed: %s", exc)
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    if get_settings().environment == "production":
+        threading.Thread(target=_warm_up, daemon=True).start()
+    yield
 
 
 def create_app() -> FastAPI:
@@ -18,6 +41,7 @@ def create_app() -> FastAPI:
         title=settings.app_name,
         version="0.1.0",
         description="Detects road damage, scores severity, merges reports and ranks repairs.",
+        lifespan=lifespan,
     )
     app.add_middleware(
         CORSMiddleware,

@@ -1,0 +1,68 @@
+name: Deploy backend
+
+# Builds the API image, pushes it to GitHub Container Registry, runs database migrations and
+# updates the Azure Container App. The frontend deploys itself through Vercel's GitHub app.
+on:
+  push:
+    branches: [main]
+    paths: ["backend/**", ".github/workflows/deploy.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+env:
+  IMAGE: ghcr.io/${{ github.repository_owner }}/roadsense-api
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Image name in lower case
+        run: echo "IMAGE=${IMAGE,,}" >> "$GITHUB_ENV"
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: backend
+          push: true
+          build-args: HF_MODEL_REPO=${{ vars.HF_MODEL_REPO }}
+          tags: |
+            ${{ env.IMAGE }}:${{ github.sha }}
+            ${{ env.IMAGE }}:latest
+
+      - uses: astral-sh/setup-uv@v5
+      - name: Run migrations
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: uv sync --frozen --no-dev && uv run alembic upgrade head
+
+      - uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Update the container app
+        run: |
+          az containerapp update \
+            --name "${{ vars.AZURE_CONTAINERAPP_NAME }}" \
+            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
+            --image "${{ env.IMAGE }}:${{ github.sha }}"
+
+      - name: Smoke test
+        run: |
+          for i in $(seq 1 30); do
+            curl -fsS "${{ vars.API_URL }}/health" && exit 0
+            sleep 10
+          done
+          exit 1

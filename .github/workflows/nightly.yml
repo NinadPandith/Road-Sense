@@ -1,0 +1,25 @@
+name: Nightly
+
+# D3: recalculate priorities (the age term grows every day), clear old IP hashes, and keep the
+# free Supabase project awake (it pauses after a week without activity).
+on:
+  schedule:
+    - cron: "37 20 * * *" # 02:07 IST
+  workflow_dispatch:
+
+jobs:
+  recalculate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call the protected endpoint (retries cover a cold start)
+        env:
+          API_URL: ${{ vars.API_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          for i in 1 2 3 4 5; do
+            if curl -fsS -X POST -H "x-cron-secret: $CRON_SECRET" "$API_URL/admin/recalculate"; then
+              exit 0
+            fi
+            sleep 30
+          done
+          exit 1
