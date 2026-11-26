@@ -1,0 +1,34 @@
+[project]
+name = "roadsense-ml"
+version = "0.1.0"
+description = "RoadSense dataset preparation, training, export and evaluation"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.26",
+    "opencv-python-headless>=4.10,<5",
+    "pillow>=10",
+    "pyyaml>=6",
+    "gpxpy>=1.6",
+    "huggingface-hub>=0.26",
+    "onnxruntime>=1.20",
+    "scikit-learn>=1.5",
+    "pandas>=2.2",
+    "matplotlib>=3.9",
+]
+
+[project.optional-dependencies]
+train = ["ultralytics>=8.3", "onnx>=1.17", "onnxslim>=0.1"]
+
+[dependency-groups]
+dev = ["pytest>=8.3", "ruff>=0.8"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
