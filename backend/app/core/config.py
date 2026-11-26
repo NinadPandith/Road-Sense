@@ -1,9 +1,11 @@
 """Application settings, read from environment variables (see .env.example)."""
 
+import json
 from functools import lru_cache
+from typing import Annotated
 
 from pydantic import Field, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -23,7 +25,9 @@ class Settings(BaseSettings):
     depth_file: str = "depth-anything-v2-small.onnx"
     model_cache_dir: str = ".model_cache"
 
-    allowed_origins: list[str] = Field(default_factory=lambda: ["http://localhost:5173"])
+    allowed_origins: Annotated[list[str], NoDecode] = Field(
+        default_factory=lambda: ["http://localhost:5173"]
+    )
     cron_secret: str = "change-me"
     ip_hash_salt: str = "change-me"
     pilot_area_path: str = ""
@@ -38,7 +42,10 @@ class Settings(BaseSettings):
     @field_validator("allowed_origins", mode="before")
     @classmethod
     def split_origins(cls, v: object) -> object:
-        if isinstance(v, str) and not v.startswith("["):
+        if isinstance(v, str):
+            v = v.strip()
+            if v.startswith("["):
+                return json.loads(v)
             return [o.strip() for o in v.split(",") if o.strip()]
         return v
 
