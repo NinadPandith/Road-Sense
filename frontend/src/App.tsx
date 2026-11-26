@@ -17,6 +17,9 @@ const RepairsPage = lazy(() => import('./pages/admin/RepairsPage'))
 const DefectDetailPage = lazy(() => import('./pages/admin/DefectDetailPage'))
 const PublicMapPage = lazy(() => import('./pages/citizen/PublicMapPage'))
 const DrivePage = lazy(() => import('./pages/citizen/DrivePage'))
+const SurveysPage = lazy(() => import('./pages/admin/SurveysPage'))
+const AnalyticsPage = lazy(() => import('./pages/admin/AnalyticsPage'))
+const SettingsPage = lazy(() => import('./pages/admin/SettingsPage'))
 
 /** 15 screens from docs/app-flow.md: P1–P8 public, A1–A7 engineer. */
 export default function App() {
@@ -40,9 +43,9 @@ export default function App() {
           <Route index element={<DashboardPage />} />
           <Route path="repairs" element={<RepairsPage />} />
           <Route path="defects/:id" element={<DefectDetailPage />} />
-          <Route path="surveys" element={<Placeholder title={t('admin.nav.surveys')} />} />
-          <Route path="analytics" element={<Placeholder title={t('admin.nav.analytics')} />} />
-          <Route path="settings" element={<Placeholder title={t('admin.nav.settings')} />} />
+          <Route path="surveys" element={<SurveysPage />} />
+          <Route path="analytics" element={<AnalyticsPage />} />
+          <Route path="settings" element={<SettingsPage />} />
         </Route>
         <Route path="*" element={<CitizenLayout />}>
           <Route path="*" element={<Placeholder title={t('errors.wrongCode')} message={t('errors.loadFailed')} />} />

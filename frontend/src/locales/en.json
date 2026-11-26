@@ -324,7 +324,9 @@
       "mergeCircle": "{{radius}} m merge circle",
       "notFound": "No defect found with this ID."
     },
-    "comingSoon": "This screen arrives in the next update."
+    "comingSoon": "This screen arrives in the next update.",
+    "showAll": "Show all defects",
+    "surveyFilter": "Showing defects from one survey."
   },
   "time": {
     "justNow": "Just now",
@@ -336,5 +338,70 @@
     "waiting_other": "{{count}} reports are waiting to send",
     "sendNow": "Send now",
     "waitingItem": "Waiting to send"
+  },
+  "surveys": {
+    "new": "New survey",
+    "name": "Route name",
+    "namePlaceholder": "e.g. College road, morning ride",
+    "video": "Video (MP4)",
+    "gpx": "GPS track (GPX)",
+    "hint": "Up to {{mb}} MB per video. Split longer rides into parts. Start the GPS logger before the camera.",
+    "tooBig": "This video is bigger than {{mb}} MB. Split the ride into shorter parts.",
+    "uploading": "Uploading… {{percent}}%",
+    "upload": "Upload survey",
+    "gpxWarning": "GPS track doesn't cover this video's time; points will be unplaced.",
+    "failed": "We couldn't process this video: {{reason}}.",
+    "doneCard": "{{found}} potholes found → {{defects}} defects ({{new}} new, {{merged}} added to existing)",
+    "viewOnMap": "View on map",
+    "state": {
+      "queued": "Queued",
+      "extracting": "Extracting frames",
+      "detecting": "Detecting",
+      "scoring": "Scoring",
+      "merging": "Merging",
+      "done": "Done",
+      "failed": "Failed"
+    }
+  },
+  "analytics": {
+    "range": "Time range",
+    "lastWeeks_one": "Last {{count}} week",
+    "lastWeeks_other": "Last {{count}} weeks",
+    "bySeverity": "Open defects by severity",
+    "byWard": "Open defects by ward",
+    "perWeek": "Reported and fixed per week",
+    "openDefects": "Open defects",
+    "reported": "Reported",
+    "fixed": "Fixed",
+    "weekOf": "Week of",
+    "showTable": "Show as table"
+  },
+  "settings": {
+    "intro": "These numbers control severity labels, merging and the repair ranking. Saving creates a new version and recalculates every open defect.",
+    "severityWeights": "Severity weights",
+    "weight": {
+      "A": "Size (A)",
+      "D": "Depth (D)",
+      "T": "Damage type (T)",
+      "P": "Position (P)"
+    },
+    "weightSum": "Weights add up to {{sum}} (must be 1.00)",
+    "thresholds": "Severity labels",
+    "moderateFrom": "Moderate from",
+    "dangerousFrom": "Dangerous from",
+    "thresholdOrder": "Dangerous must start above Moderate.",
+    "typeWeights": "Damage type weights",
+    "roadWeights": "Road importance (R)",
+    "mergingAndPriority": "Merging and priority",
+    "mergeRadius": "Merge radius (m)",
+    "minConfidence": "Minimum AI confidence",
+    "sensitiveRadius": "School/hospital radius (m)",
+    "sensitiveBoost": "School/hospital boost (B)",
+    "autoVerify": "Reports to auto-verify",
+    "reopenDays": "Re-open fixed defects within (days)",
+    "save": "Save settings",
+    "saved": "Settings saved. Priorities were recalculated.",
+    "history": "Change history",
+    "version": "Version {{id}}"
   }
 }

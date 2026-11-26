@@ -3,21 +3,28 @@
 const LOCALE = 'en-IN'
 const TZ = 'Asia/Kolkata'
 
-/** 27 Nov 2026 */
-export function formatDate(iso: string | Date): string {
-  const d = typeof iso === 'string' ? new Date(iso) : iso
-  return new Intl.DateTimeFormat('en-GB', {
+// Day, three-letter month and year in IST. Built from parts because en-GB writes "Sept".
+function dateParts(d: Date): { day: string; month: string; year: string } {
+  const parts = new Intl.DateTimeFormat('en-US', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
     timeZone: TZ,
-  }).format(d)
+  }).formatToParts(d)
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? ''
+  return { day: get('day'), month: get('month'), year: get('year') }
+}
+
+/** 27 Nov 2026 */
+export function formatDate(iso: string | Date): string {
+  const { day, month, year } = dateParts(typeof iso === 'string' ? new Date(iso) : iso)
+  return `${day} ${month} ${year}`
 }
 
 /** 27 Nov (no year), for status lines */
 export function formatShortDate(iso: string | Date): string {
-  const d = typeof iso === 'string' ? new Date(iso) : iso
-  return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', timeZone: TZ }).format(d)
+  const { day, month } = dateParts(typeof iso === 'string' ? new Date(iso) : iso)
+  return `${day} ${month}`
 }
 
 /** 6:30 pm */

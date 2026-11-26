@@ -1,18 +1,41 @@
 import { useQuery } from '@tanstack/react-query'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Alert } from '../../components/Alert'
-import { SeverityBadge } from '../../components/Badges'
-import { DefectMap, type MapPoint } from '../../components/DefectMap'
-import { allDefects, getStats, listDefects } from '../../lib/admin'
+import { DefectMap } from '../../components/DefectMap'
+import { ClusterLayer, HeatLayer, type LayerPoint } from '../../components/MapLayers'
+import { allDefects, getStats, listDefects, type Filters } from '../../lib/admin'
 import { formatNumber } from '../../lib/format'
 
-/** A2 Dashboard: KPI cards, severity map, top 10 to fix, needs-review banner. */
+/** A2 Dashboard: KPI cards, clustered severity map with heatmap toggle, top 10, review banner.
+ * `?survey_id=` filters the map and list to one survey (Surveys -> View on map). */
 export default function DashboardPage() {
   const { t } = useTranslation()
-  const stats = useQuery({ queryKey: ['stats'], queryFn: getStats })
-  const top = useQuery({ queryKey: ['defects', 'top10'], queryFn: () => listDefects({}, 1, 10) })
-  const all = useQuery({ queryKey: ['defects', 'map'], queryFn: () => allDefects({}) })
+  const navigate = useNavigate()
+  const [sp] = useSearchParams()
+  const surveyId = sp.get('survey_id') ?? undefined
+  const filters: Filters = useMemo(() => ({ survey_id: surveyId }), [surveyId])
+  const [heat, setHeat] = useState(false)
+
+  const stats = useQuery({ queryKey: ['stats'], queryFn: () => getStats() })
+  const top = useQuery({ queryKey: ['defects', 'top10', surveyId], queryFn: () => listDefects(filters, 1, 10) })
+  const all = useQuery({ queryKey: ['defects', 'map', surveyId], queryFn: () => allDefects(filters) })
+
+  const points: LayerPoint[] = useMemo(
+    () =>
+      (all.data ?? []).map((d) => ({
+        id: d.id,
+        lat: d.lat,
+        lon: d.lon,
+        severity: d.severity_label,
+        title: d.damage_class ? t(`damage.${d.damage_class}`) : t('damage.unknown'),
+        subtitle: d.severity_label ? t(`severity.${d.severity_label}`) : t('severity.unscored'),
+        linkText: t('admin.openDetails'),
+        href: `/admin/defects/${d.id}`,
+      })),
+    [all.data, t],
+  )
 
   if (stats.error || top.error) return <Alert tone="error">{t('errors.loadFailed')}</Alert>
 
@@ -23,24 +46,15 @@ export default function DashboardPage() {
     { label: t('admin.kpi.newWeek'), value: s?.new_this_week },
     { label: t('admin.kpi.fixedWeek'), value: s?.fixed_this_week },
   ]
-  const points: MapPoint[] = (all.data ?? []).map((d) => ({
-    id: d.id,
-    lat: d.lat,
-    lon: d.lon,
-    severity: d.severity_label,
-    popup: (
-      <div className="flex flex-col gap-1 text-sm">
-        {d.thumb_url && <img src={d.thumb_url} alt="" className="h-20 w-32 rounded object-cover" />}
-        <strong>{d.damage_class ? t(`damage.${d.damage_class}`) : t('damage.unknown')}</strong>
-        <SeverityBadge label={d.severity_label} />
-        <Link to={`/admin/defects/${d.id}`}>{t('admin.openDetails')}</Link>
-      </div>
-    ),
-  }))
 
   return (
     <div className="flex flex-col gap-5">
       <h1 className="text-2xl font-bold">{t('admin.nav.dashboard')}</h1>
+      {surveyId && (
+        <Alert tone="info" action={<Link to="/admin" className="btn btn-secondary">{t('admin.showAll')}</Link>}>
+          {t('admin.surveyFilter')}
+        </Alert>
+      )}
       {s && s.needs_review > 0 && (
         <Alert
           tone="info"
@@ -62,7 +76,21 @@ export default function DashboardPage() {
         ))}
       </ul>
       <div className="grid gap-5 xl:grid-cols-[1fr_380px]">
-        <DefectMap points={points} className="h-[480px]" label={t('admin.nav.dashboard')} />
+        <div className="flex flex-col gap-2">
+          <label className="flex items-center gap-2 self-end text-sm font-medium">
+            <input type="checkbox" className="h-5 w-5" checked={heat} onChange={(e) => setHeat(e.target.checked)} />
+            {t('admin.heatmap')}
+          </label>
+          <DefectMap
+            points={points.map((p) => ({ id: p.id, lat: p.lat, lon: p.lon, severity: p.severity }))}
+            markers={false}
+            className="h-[480px]"
+            label={t('admin.nav.dashboard')}
+          >
+            {heat ? <HeatLayer points={points} /> : <ClusterLayer points={points} onOpen={navigate} />}
+          </DefectMap>
+          {all.data && all.data.length === 0 && <p className="text-slate-600">{t('empty.dashboard')}</p>}
+        </div>
         <section className="card">
           <h2 className="mb-3 text-lg font-semibold">{t('admin.fixFirst')}</h2>
           {top.data && top.data.items.length === 0 && <p>{t('empty.dashboard')}</p>}

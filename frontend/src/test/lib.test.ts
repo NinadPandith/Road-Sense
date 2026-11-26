@@ -7,6 +7,7 @@ describe('format (Content Guidelines writing rules)', () => {
   it('formats dates as 27 Nov 2026 in IST', () => {
     expect(formatDate('2026-11-27T04:00:00Z')).toBe('27 Nov 2026')
     expect(formatDate('2026-11-26T20:00:00Z')).toBe('27 Nov 2026') // 1:30 am IST next day
+    expect(formatDate('2026-09-28T04:00:00Z')).toBe('28 Sep 2026') // never "Sept"
   })
   it('formats times as 6:30 pm', () => {
     expect(formatTime('2026-11-27T13:00:00Z')).toBe('6:30 pm')

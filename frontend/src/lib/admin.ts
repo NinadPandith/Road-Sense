@@ -1,5 +1,17 @@
-import { api, apiBlob } from './api'
-import type { DefectDetail, DefectListItem, DefectStatus, Page, RoadClass, SeverityLabel, Stats } from './types'
+import { api, apiBlob, apiUpload } from './api'
+import type {
+  DamageClass,
+  DefectDetail,
+  DefectListItem,
+  DefectStatus,
+  Page,
+  RoadClass,
+  ScoringSettings,
+  SettingsVersion,
+  SeverityLabel,
+  Stats,
+  Survey,
+} from './types'
 
 export interface Filters {
   status?: DefectStatus[]
@@ -47,11 +59,19 @@ export function getDefect(id: string) {
   return api<DefectDetail>(`/defects/${id}`, { auth: true })
 }
 
-export function changeStatus(id: string, to: DefectStatus, reason?: string, photo?: File | null) {
+export function changeStatus(
+  id: string,
+  to: DefectStatus,
+  reason?: string,
+  photo?: File | null,
+  review?: { damageClass?: DamageClass; severity?: SeverityLabel },
+) {
   const form = new FormData()
   form.append('to_status', to)
   if (reason) form.append('reason', reason)
   if (photo) form.append('fixed_photo', photo)
+  if (review?.damageClass) form.append('damage_class', review.damageClass)
+  if (review?.severity) form.append('severity_label', review.severity)
   return api<DefectDetail>(`/defects/${id}/status`, { method: 'PATCH', form, auth: true })
 }
 
@@ -62,8 +82,32 @@ export function bulkStatus(ids: string[], to: DefectStatus) {
   })
 }
 
-export function getStats() {
-  return api<Stats>('/stats', { auth: true })
+export function getStats(from?: string) {
+  return api<Stats>('/stats', { auth: true, query: { from } })
+}
+
+export function listSurveys() {
+  return api<Survey[]>('/surveys', { auth: true })
+}
+
+export function uploadSurvey(name: string, video: File, gpx: File, onProgress: (f: number) => void) {
+  const form = new FormData()
+  form.append('name', name)
+  form.append('video', video)
+  form.append('gpx', gpx)
+  return apiUpload<Survey>('/surveys', form, onProgress)
+}
+
+export function getSettings() {
+  return api<ScoringSettings>('/settings', { auth: true })
+}
+
+export function saveSettings(values: ScoringSettings) {
+  return api<ScoringSettings>('/settings', { json: values, auth: true })
+}
+
+export function settingsHistory() {
+  return api<SettingsVersion[]>('/settings/history', { auth: true })
 }
 
 export async function downloadCsv(f: Filters) {

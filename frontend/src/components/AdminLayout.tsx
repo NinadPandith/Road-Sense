@@ -2,12 +2,14 @@ import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 import { Link, Navigate, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
+import { useRealtimeDefects } from '../lib/realtime'
 
 /** Engineer screens: left sidebar for A2–A7; redirects to login and back when signed out. */
 export function AdminLayout() {
   const { t } = useTranslation()
   const { ready, session, me, signOut } = useAuth()
   const location = useLocation()
+  useRealtimeDefects(!!session)
 
   if (!ready) return <p className="p-6">{t('app.loading')}</p>
   if (!session) {

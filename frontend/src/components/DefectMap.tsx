@@ -36,17 +36,20 @@ export function DefectMap({
   className = 'h-96',
   label,
   children,
+  markers = true,
 }: {
   points: MapPoint[]
   className?: string
   label: string
   children?: ReactNode
+  /** false when a child layer (clusters, heatmap) draws the points instead */
+  markers?: boolean
 }) {
   return (
     <div className={`${className} overflow-hidden rounded-2xl border border-slate-200`} role="region" aria-label={label}>
       <MapContainer center={MAP_CENTER} zoom={13} className="h-full w-full">
         <TileLayer url={OSM_TILES} attribution={OSM_ATTRIBUTION} maxZoom={19} />
-        {points.map((p) => {
+        {markers && points.map((p) => {
           const colour = p.fixed ? SEVERITY_COLOURS.fixed : SEVERITY_COLOURS[p.severity ?? 'none']
           const radius = p.severity === 'dangerous' ? 10 : p.severity === 'moderate' ? 8 : 6
           return (
