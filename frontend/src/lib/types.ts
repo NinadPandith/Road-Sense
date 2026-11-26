@@ -139,3 +139,41 @@ export interface Me {
   full_name: string
   role: 'engineer' | 'demo'
 }
+
+export type SurveyStatus = 'queued' | 'extracting' | 'detecting' | 'scoring' | 'merging' | 'done' | 'failed'
+
+export interface Survey {
+  id: string
+  name: string
+  status: SurveyStatus
+  progress: number
+  frames_total: number | null
+  detections_count: number
+  defects_new: number
+  defects_merged: number
+  error: string | null
+  created_at: string
+  started_at: string | null
+  finished_at: string | null
+  gpx_overlap?: boolean | null
+}
+
+export interface ScoringSettings {
+  severity_weights: { A: number; D: number; T: number; P: number }
+  thresholds: { moderate: number; dangerous: number }
+  type_weights: Record<DamageClass, number>
+  road_weights: Record<RoadClass, number>
+  merge_radius_m: number
+  min_confidence: number
+  sensitive_radius_m: number
+  sensitive_boost: number
+  auto_verify_reports: number
+  reopen_days: number
+}
+
+export interface SettingsVersion {
+  id: number
+  created_at: string
+  created_by: string | null
+  values: ScoringSettings
+}

@@ -123,3 +123,27 @@ export async function api<T>(path: string, opts: RequestOptions = {}): Promise<T
 export async function apiBlob(path: string, opts: RequestOptions = {}): Promise<Blob> {
   return (await send(path, opts)).blob()
 }
+
+/** POST a form with upload progress (fetch can't report it), same error shape as api(). */
+export async function apiUpload<T>(path: string, form: FormData, onProgress: (f: number) => void): Promise<T> {
+  const token = await tokenProvider()
+  return new Promise<T>((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open('POST', `${API_URL}${path}`)
+    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`)
+    xhr.upload.onprogress = (e) => e.lengthComputable && onProgress(e.loaded / e.total)
+    xhr.onerror = () => reject(new ApiError('network', 0, 'Network error'))
+    xhr.onload = () => {
+      let data: unknown = null
+      try {
+        data = JSON.parse(xhr.responseText)
+      } catch {
+        /* not JSON */
+      }
+      if (xhr.status >= 200 && xhr.status < 300) return resolve(data as T)
+      const err = (data as { error?: { code?: ErrorCode; message?: string } } | null)?.error
+      reject(new ApiError(err?.code ?? 'internal', xhr.status, err?.message ?? xhr.statusText))
+    }
+    xhr.send(form)
+  })
+}
