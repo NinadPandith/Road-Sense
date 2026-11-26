@@ -63,7 +63,12 @@ async def create_report(
         client_report_id=client_report_id,
         ip_hash=ip_hash,
     )
-    return process_report(db, services, scoring, data, inp, settings.rate_limit_per_hour)
+    limit = (
+        settings.drive_rate_limit_per_hour
+        if source == ReportSource.drive
+        else settings.rate_limit_per_hour
+    )
+    return process_report(db, services, scoring, data, inp, limit)
 
 
 def _report_by_code(db: Session, code: str) -> Report:

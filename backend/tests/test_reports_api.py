@@ -136,6 +136,8 @@ def test_rate_limit_after_10_reports_per_hour(api):
     assert r.status_code == 429
     assert r.json()["error"]["code"] == "rate_limited"
     assert post(api, seed=99, ip="5.6.7.8").status_code == 200  # other network still fine
+    # Drive mode has its own, higher limit, so a ride isn't blocked by citizen photos.
+    assert post(api, lat=metres_north(LAT, 500), seed=98, source="drive").status_code == 200
 
 
 def test_same_client_report_id_is_idempotent(api, db):

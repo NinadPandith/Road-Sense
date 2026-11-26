@@ -61,16 +61,20 @@ def hash_ip(ip: str, salt: str) -> str:
     return hashlib.sha256((ip + salt).encode()).hexdigest()
 
 
-def check_rate_limit(db: Session, ip_hash: str | None, limit: int) -> None:
-    """Backend Schema query 2: at most `limit` reports per IP per hour."""
+def check_rate_limit(
+    db: Session, ip_hash: str | None, limit: int, source: ReportSource = ReportSource.citizen
+) -> None:
+    """Backend Schema query 2: at most `limit` reports per IP per hour, counted per source
+    (a Drive-mode ride legitimately sends many frames; citizen photos stay at 10/hour)."""
     if not ip_hash:
         return
     count = db.execute(
         text(
-            "select count(*) from reports "
-            "where ip_hash = :h and created_at > now() - interval '1 hour'"
+            "select count(*) from reports where ip_hash = :h "
+            "and source = cast(:src as report_source) "
+            "and created_at > now() - interval '1 hour'"
         ),
-        {"h": ip_hash},
+        {"h": ip_hash, "src": source.value},
     ).scalar_one()
     if count >= limit:
         raise ApiError("rate_limited", 429, retry_after_s=3600)
@@ -171,7 +175,7 @@ def process_report(
     if not geo.in_pilot_area(inp.lat, inp.lon):
         raise ApiError("outside_pilot_area", 422)
     if inp.source != ReportSource.survey:
-        check_rate_limit(db, inp.ip_hash, max_per_hour)
+        check_rate_limit(db, inp.ip_hash, max_per_hour, inp.source)
     rgb = images.resize_max(images.load_image(image_bytes), images.MAX_SIDE)
 
     # 3 (before 2). Privacy: blur in memory; the original is never stored.

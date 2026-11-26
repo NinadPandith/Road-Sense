@@ -38,6 +38,7 @@ class Settings(BaseSettings):
 
     max_upload_mb: int = 50
     rate_limit_per_hour: int = 10
+    drive_rate_limit_per_hour: int = 120
     sentry_dsn: str = ""
 
     @field_validator("allowed_origins", mode="before")
