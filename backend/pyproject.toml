@@ -23,6 +23,7 @@ dependencies = [
     "shapely>=2.0",
     "gpxpy>=1.6",
     "scikit-learn>=1.5",
+    "sentry-sdk[fastapi]>=2.18",
 ]
 
 [dependency-groups]

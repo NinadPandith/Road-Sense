@@ -169,3 +169,83 @@ Add a section per task ID as it is finished.
    Supabase project from pausing.
 5. **How are secrets handled?** Only in environment variables and GitHub/Azure secret stores;
    `.env` is git-ignored and the browser only ever gets the anon key.
+
+## B10: survey processing
+
+1. **How does a survey become defects?** The video and GPX are uploaded, a worker thread claims
+   the job (`FOR UPDATE SKIP LOCKED`), samples 4 frames per second, detects on each, finds each
+   frame's position by interpolating the GPX track at the frame's time, and sends the kept frames
+   through the same pipeline as citizen photos.
+2. **How is the video matched to GPS?** The video's start time comes from the MP4 header (mvhd
+   creation time, UTC); frame time = start + offset. Without it, the GPX start is used.
+3. **Why not save every frame?** The same pothole appears in many frames. Consecutive detections
+   within 2 s and 5 m count as one defect, and only that best frame is stored (storage rule:
+   only frames with detections).
+4. **Why a jobs table instead of Celery?** A few videos a week don't justify hosting Redis; a
+   polled table is simple, survives restarts (stale jobs are re-queued) and is visible in SQL.
+5. **What happens to the uploads?** They are deleted as soon as the job is done or failed
+   (retention rule).
+
+## B11: needs review and Not a defect
+
+1. **What is Needs review?** A photo the AI found no damage in, which the citizen sent anyway.
+2. **What does Accept do?** Moves it to Reported with the engineer's damage type and severity,
+   so it gets a priority.
+3. **What does Not a defect do?** Moves the defect to Rejected (kept, never deleted) and its
+   photos become hard negatives for retraining (`export_hard_negatives.py`).
+4. **Why keep rejected defects?** Audit trail, and false positives are the most useful data for
+   the next model.
+5. **Can the AI overrule an engineer?** No. Status changes are engineer decisions; the AI only
+   suggests.
+
+## F4: Drive mode
+
+1. **Where does detection run?** In the phone's browser with ONNX Runtime Web: WebGPU when
+   available, WASM otherwise. The YOLO nano model is about 6–12 MB and is cached.
+2. **How are duplicate uploads avoided?** The same defect in consecutive frames within 2 s is
+   kept once, as the highest-confidence frame.
+3. **What if the phone is too slow?** Below 2 frames per second it offers to send a photo every
+   2 seconds instead, so the server does the detection.
+4. **What if there's no signal?** Frames wait in an IndexedDB outbox and upload later, each with
+   a client_report_id so retries don't duplicate.
+5. **Why a separate rate limit?** A ride can find dozens of potholes, so Drive mode allows 120
+   uploads per hour per network, counted separately from citizen photos (10 per hour).
+
+## F5–F7: surveys screen, dashboard extras, PWA
+
+1. **How does upload progress work?** `XMLHttpRequest` upload events (fetch can't report upload
+   progress).
+2. **How does the dashboard update live?** Supabase Realtime on the defects table; on any change
+   the lists and KPIs are refetched (debounced by 1 s).
+3. **Why cluster markers?** Hundreds of overlapping markers are unreadable when zoomed out;
+   clusters split as you zoom in. The heatmap weights points by severity.
+4. **What makes it an installable app?** A web manifest and a service worker (vite-plugin-pwa).
+   The service worker caches the app shell, the Drive-mode model and map tiles.
+5. **How are charts made accessible?** Colours validated for colour blindness, every chart has a
+   table view, and severity always has a word and an icon.
+
+## M10–M14, F8: experiments and results
+
+1. **How is overfitting the severity weights avoided?** Weights are tuned on one stratified half
+   of the 200 hand labels and reported on the other half only.
+2. **Why weighted kappa and not just accuracy?** Labels are ordered; calling a Dangerous pothole
+   Minor is worse than calling it Moderate, and kappa also corrects for chance agreement.
+3. **What does the ablation show?** How much agreement drops when each factor is removed, i.e.
+   whether depth is worth the extra model.
+4. **How is merge accuracy defined?** The share of real potholes whose reports all land in one
+   map point that contains no other pothole, measured over a sweep of radii.
+5. **How are results kept honest?** Only real measurements go in `ml/results`; the results page
+   shows test-set sizes and failure cases, and says "Not measured yet" until an experiment runs.
+
+## D4: monitoring and accessibility
+
+1. **What does Sentry collect?** Errors from both apps, without personal data: request bodies,
+   cookies, IPs and auth headers are stripped before sending.
+2. **How is accessibility checked?** Playwright end-to-end tests run axe (WCAG 2 A/AA) on every
+   screen and fail on serious or critical issues; they run in CI.
+3. **What did the checks catch?** An invalid list structure in the severity bars, and charts
+   hidden from screen readers while still keyboard-focusable. Both were fixed.
+4. **Why mock the API in end-to-end tests?** The tests then run with only the frontend dev
+   server, quickly and reliably in CI; the full stack was also checked by hand against PostGIS.
+5. **What else supports outdoor use?** 16 px text, 44 px touch targets, strong contrast and
+   word + icon for every severity.

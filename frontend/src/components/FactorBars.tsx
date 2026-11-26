@@ -15,18 +15,18 @@ export function level(v: number | null): 'low' | 'medium' | 'high' | 'unknown' {
 export function FactorBars({ factors, showNumbers = false }: { factors: SeverityFactors; showNumbers?: boolean }) {
   const { t } = useTranslation()
   return (
-    <dl className="space-y-3">
+    <ul className="space-y-3">
       {ORDER.map((k) => {
         const v = factors[k]
         const lvl = level(v)
         return (
-          <div key={k}>
+          <li key={k}>
             <div className="flex justify-between text-sm">
-              <dt className="font-medium text-slate-700">{t(`severity.factor.${k}`)}</dt>
-              <dd className="text-slate-600">
+              <span className="font-medium text-slate-700">{t(`severity.factor.${k}`)}</span>
+              <span className="text-slate-600">
                 {t(`severity.level.${lvl}`)}
                 {showNumbers && v !== null && <span className="ml-1 tabular-nums">({v.toFixed(2)})</span>}
-              </dd>
+              </span>
             </div>
             <div
               className="mt-1 h-2.5 overflow-hidden rounded-full bg-slate-200"
@@ -39,9 +39,9 @@ export function FactorBars({ factors, showNumbers = false }: { factors: Severity
             >
               <div className="h-full rounded-full bg-brand-600" style={{ width: `${Math.round((v ?? 0) * 100)}%` }} />
             </div>
-          </div>
+          </li>
         )
       })}
-    </dl>
+    </ul>
   )
 }

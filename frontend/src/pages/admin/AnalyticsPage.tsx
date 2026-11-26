@@ -112,7 +112,7 @@ function ChartCard({ title, children, rows, cols }: { title: string; children: R
   return (
     <section className="card flex flex-col gap-3">
       <h2 className="text-lg font-semibold">{title}</h2>
-      <div aria-hidden="true">{children}</div>
+      <div>{children}</div>
       <details>
         <summary className="cursor-pointer text-sm font-medium text-brand-800">{t('analytics.showTable')}</summary>
         <table className="mt-2 w-full text-left text-sm">

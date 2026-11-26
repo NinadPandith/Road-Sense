@@ -10,7 +10,9 @@ import { AuthProvider } from './lib/auth'
 import { DraftProvider } from './lib/draft'
 import './lib/i18n'
 import { startOutbox } from './lib/outbox'
+import { initSentry } from './lib/sentry'
 
+initSentry()
 startOutbox()
 
 const queryClient = new QueryClient({

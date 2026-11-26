@@ -46,8 +46,34 @@ async def lifespan(_: FastAPI):
         worker.stop()
 
 
+def init_sentry(dsn: str, environment: str, release: str) -> None:
+    """Error tracking (D4). No personal data: no IPs, no request bodies (photos), no cookies."""
+    import sentry_sdk
+
+    def scrub(event, _hint):
+        request = event.get("request") or {}
+        request.pop("data", None)
+        request.pop("cookies", None)
+        headers = request.get("headers") or {}
+        for h in ("authorization", "x-forwarded-for", "x-cron-secret", "cookie"):
+            headers.pop(h, None)
+            headers.pop(h.title(), None)
+        return event
+
+    sentry_sdk.init(
+        dsn=dsn,
+        environment=environment,
+        release=release,
+        send_default_pii=False,
+        traces_sample_rate=0.05,
+        before_send=scrub,
+    )
+
+
 def create_app() -> FastAPI:
     settings = get_settings()
+    if settings.sentry_dsn:
+        init_sentry(settings.sentry_dsn, settings.environment, settings.model_version)
     app = FastAPI(
         title=settings.app_name,
         version="0.1.0",
