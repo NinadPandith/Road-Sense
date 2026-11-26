@@ -16,6 +16,7 @@ const DashboardPage = lazy(() => import('./pages/admin/DashboardPage'))
 const RepairsPage = lazy(() => import('./pages/admin/RepairsPage'))
 const DefectDetailPage = lazy(() => import('./pages/admin/DefectDetailPage'))
 const PublicMapPage = lazy(() => import('./pages/citizen/PublicMapPage'))
+const DrivePage = lazy(() => import('./pages/citizen/DrivePage'))
 
 /** 15 screens from docs/app-flow.md: P1–P8 public, A1–A7 engineer. */
 export default function App() {
@@ -30,7 +31,7 @@ export default function App() {
           <Route path="report/result/:code" element={<ResultPage />} />
           <Route path="track" element={<TrackPage />} />
           <Route path="track/:code" element={<TrackPage />} />
-          <Route path="drive" element={<Placeholder title={t('drive.title')} message={t('drive.comingSoon')} />} />
+          <Route path="drive" element={<DrivePage />} />
           <Route path="map" element={<PublicMapPage />} />
           <Route path="results" element={<Placeholder title={t('results.title')} message={`${t('results.intro')} ${t('results.pending')}`} />} />
         </Route>

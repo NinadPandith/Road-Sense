@@ -4,7 +4,7 @@
   "installCommand": "pnpm install --frozen-lockfile",
   "buildCommand": "pnpm build",
   "outputDirectory": "dist",
-  "rewrites": [{ "source": "/((?!assets/|models/|icon.svg).*)", "destination": "/index.html" }],
+  "rewrites": [{ "source": "/((?!assets/|models/|ort/|icon|manifest|sw.js|workbox-|registerSW).*)", "destination": "/index.html" }],
   "headers": [
     {
       "source": "/assets/(.*)",

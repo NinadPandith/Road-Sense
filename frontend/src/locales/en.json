@@ -174,7 +174,11 @@
     "sessionExpired": "Please sign in again to continue.",
     "demoReadOnly": "The demo account is read only. Sign in as an engineer to make changes.",
     "invalidTransition": "This status change isn't allowed from the current status.",
-    "notConfigured": "Sign in isn't set up yet. Add the Supabase settings to the frontend environment."
+    "notConfigured": "Sign in isn't set up yet. Add the Supabase settings to the frontend environment.",
+    "driveNoGps": "Drive mode needs your location. Turn on location to start.",
+    "cameraBlockedDrive": "Camera access is off. Turn it on in your browser settings to use Drive mode.",
+    "modelFailed": "We couldn't load the AI on this phone. Check your connection and try again.",
+    "driveSlow": "Live detection is slow on this phone. We'll check a photo every 2 seconds instead."
   },
   "buttons": {
     "retakePhoto": "Retake photo",
@@ -203,7 +207,10 @@
     "stop": "Stop",
     "counter": "{{found}} found · {{sent}} sent · {{distance}}",
     "summary": "Ride complete. {{found}} potholes found over {{distance}}.",
-    "comingSoon": "Live detection in the browser arrives in the next update. For now, use Report a pothole."
+    "loadingModel": "Getting the AI ready… {{percent}}%",
+    "cameraLabel": "Live camera view",
+    "uploadRemaining_one": "Send {{count}} waiting photo",
+    "uploadRemaining_other": "Send {{count}} waiting photos"
   },
   "publicMap": {
     "title": "Reported potholes",
@@ -322,5 +329,12 @@
   "time": {
     "justNow": "Just now",
     "yesterday": "Yesterday"
+  },
+  "outbox": {
+    "saved": "You're offline. We'll send your report when you're back online.",
+    "waiting_one": "{{count}} report is waiting to send",
+    "waiting_other": "{{count}} reports are waiting to send",
+    "sendNow": "Send now",
+    "waitingItem": "Waiting to send"
   }
 }
