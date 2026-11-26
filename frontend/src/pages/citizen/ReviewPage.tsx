@@ -6,6 +6,7 @@ import { PinMap } from '../../components/PinMap'
 import { ApiError, ERROR_KEYS } from '../../lib/api'
 import { MAP_CENTER, PILOT_AREA_NAME, WEAK_GPS_M } from '../../lib/config'
 import { useDraft } from '../../lib/draft'
+import { enqueue, newId } from '../../lib/outbox'
 import { submitReport } from '../../lib/reports'
 
 /** P3 Review: photo, pin on a map, optional note, submit. Uploading progress is shown here. */
@@ -20,6 +21,7 @@ export function ReviewPage() {
   const [note, setNote] = useState('')
   const [state, setState] = useState<'idle' | 'sending' | 'slow'>('idle')
   const [error, setError] = useState<ApiError | null>(null)
+  const [savedOffline, setSavedOffline] = useState(false)
   const onMove = useCallback((lat: number, lon: number) => {
     setPos([lat, lon])
     setMoved(true)
@@ -35,14 +37,29 @@ export function ReviewPage() {
 
   const weak = !moved && draft.fix?.accuracy != null && draft.fix.accuracy > WEAK_GPS_M
 
+  async function saveForLater() {
+    if (!draft) return
+    await enqueue({
+      id: newId(),
+      photo: draft.photo,
+      lat: pos[0],
+      lon: pos[1],
+      accuracy: moved ? null : (draft.fix?.accuracy ?? null),
+      capturedAt: draft.capturedAt.toISOString(),
+      note,
+      source: 'citizen',
+    })
+    setSavedOffline(true)
+  }
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!draft) return
+    setError(null)
     if (!navigator.onLine) {
-      setError(new ApiError('network', 0, 'offline'))
+      await saveForLater()
       return
     }
-    setError(null)
     setState('sending')
     try {
       const result = await submitReport({
@@ -57,15 +74,31 @@ export function ReviewPage() {
       navigate(`/report/result/${result.tracking_code}`, { state: { result } })
     } catch (err) {
       setState('idle')
-      setError(err instanceof ApiError ? err : new ApiError('network', 0, String(err)))
+      const apiErr = err instanceof ApiError ? err : new ApiError('network', 0, String(err))
+      if (apiErr.code === 'network') await saveForLater()
+      else setError(apiErr)
     }
   }
 
-  const errorText = error
-    ? !navigator.onLine
-      ? t('errors.offline')
-      : t(ERROR_KEYS[error.code], { area: PILOT_AREA_NAME })
-    : null
+  if (savedOffline) {
+    return (
+      <section className="flex flex-col gap-5">
+        <Alert tone="info">{t('outbox.saved')}</Alert>
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={() => {
+            setDraft(null)
+            navigate('/')
+          }}
+        >
+          {t('app.ok')}
+        </button>
+      </section>
+    )
+  }
+
+  const errorText = error ? t(ERROR_KEYS[error.code], { area: PILOT_AREA_NAME }) : null
   const retake = error?.code === 'image_too_dark' || error?.code === 'invalid_image'
 
   return (

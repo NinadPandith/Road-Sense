@@ -9,6 +9,9 @@ import { ApiError } from './lib/api'
 import { AuthProvider } from './lib/auth'
 import { DraftProvider } from './lib/draft'
 import './lib/i18n'
+import { startOutbox } from './lib/outbox'
+
+startOutbox()
 
 const queryClient = new QueryClient({
   defaultOptions: {

@@ -13,9 +13,10 @@ export interface NewReport {
   capturedAt: Date
   note: string
   source?: 'citizen' | 'drive'
+  clientReportId?: string
 }
 
-function newId(): string {
+export function newId(): string {
   return typeof crypto.randomUUID === 'function'
     ? crypto.randomUUID()
     : '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, (c) =>
@@ -31,10 +32,10 @@ export async function submitReport(r: NewReport): Promise<ReportResult> {
   if (r.accuracy !== null) form.append('accuracy_m', String(Math.round(r.accuracy)))
   form.append('captured_at', r.capturedAt.toISOString())
   form.append('source', r.source ?? 'citizen')
-  form.append('client_report_id', newId())
+  form.append('client_report_id', r.clientReportId ?? newId())
   if (r.note.trim()) form.append('note', r.note.trim())
   const result = await api<ReportResult>('/reports', { form })
-  rememberResult(result)
+  if ((r.source ?? 'citizen') === 'citizen') rememberResult(result)
   return result
 }
 

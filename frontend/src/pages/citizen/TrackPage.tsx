@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import clsx from 'clsx'
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { Link, useNavigate, useParams } from 'react-router-dom'
@@ -9,6 +9,7 @@ import { SeverityBadge, StatusBadge } from '../../components/Badges'
 import { ApiError } from '../../lib/api'
 import { formatDate, formatRelative, formatShortDate } from '../../lib/format'
 import { loadMyReports } from '../../lib/myReports'
+import { flush, onOutboxChange, pending, type OutboxItem } from '../../lib/outbox'
 import { track } from '../../lib/reports'
 import type { TrackResult } from '../../lib/types'
 
@@ -59,13 +60,43 @@ function CodeForm({ initial }: { initial: string }) {
   )
 }
 
+function useWaiting(): OutboxItem[] {
+  const [items, setItems] = useState<OutboxItem[]>([])
+  useEffect(() => {
+    const load = () =>
+      void pending()
+        .then((all) => setItems(all.filter((i) => i.source === 'citizen')))
+        .catch(() => setItems([]))
+    load()
+    return onOutboxChange(load)
+  }, [])
+  return items
+}
+
 function MyReports() {
   const { t } = useTranslation()
-  const mine = loadMyReports()
+  const waiting = useWaiting()
+  // Re-read when the outbox changes: a report that just sent now has a tracking code.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const mine = useMemo(() => loadMyReports(), [waiting.length])
   return (
     <div>
       <h2 className="mb-3 text-lg font-semibold">{t('track.myReports')}</h2>
-      {mine.length === 0 ? (
+      {waiting.length > 0 && (
+        <div className="mb-3">
+          <Alert
+            tone="info"
+            action={
+              <button type="button" className="btn btn-secondary" onClick={() => void flush()}>
+                {t('outbox.sendNow')}
+              </button>
+            }
+          >
+            {t('outbox.waiting', { count: waiting.length })}
+          </Alert>
+        </div>
+      )}
+      {mine.length === 0 && waiting.length === 0 ? (
         <div className="card flex flex-col items-start gap-3">
           <p>{t('empty.myReports')}</p>
           <Link to="/report" className="btn btn-primary">
