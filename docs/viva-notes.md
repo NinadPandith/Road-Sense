@@ -80,3 +80,92 @@ Add a section per task ID as it is finished.
    so the score stays comparable (the PRD's fallback to size + type).
 5. **How do you know the score is right?** Experiment E3: compare with 200 hand labels (accuracy,
    weighted kappa), tune weights on half the data, and E4 ablates each factor.
+
+## B5: POST /reports pipeline
+
+1. **What are the 9 steps?** Check (file type, size, rate limit, pilot area) → save report →
+   blur → detect → score → merge → enrich → prioritise → respond.
+2. **Why blur before saving, when the App Flow says save first?** The Backend Schema rule wins: an
+   unblurred original must never reach storage, so blurring happens in memory first.
+3. **What if the AI finds nothing?** The report is saved as `no_damage` and the citizen can choose
+   *Send anyway*, which creates a `needs_review` defect for an engineer.
+4. **How do offline retries avoid duplicates?** Each report carries a `client_report_id`
+   (idempotency key); a second upload with the same ID returns the first result.
+5. **How is spam limited?** 10 reports per IP per hour, counted in the database with a salted
+   SHA-256 hash of the IP (the raw IP is never stored, and hashes are cleared after 30 days).
+
+## B6: merging duplicate reports
+
+1. **How is "the same pothole" decided?** `ST_DWithin(location, point, 5 m)` on open defects (and
+   ones fixed in the last 30 days), nearest first.
+2. **Why PostGIS instead of DBSCAN at request time?** Reports arrive one at a time; a radius query
+   on a GiST index is the online version of DBSCAN with eps = 5 m and min_samples = 1. DBSCAN is
+   still used offline in experiment E5.
+3. **What stops two simultaneous reports from creating two defects?** Transaction-level advisory
+   locks on the grid cells the 5 m circle touches, plus `SELECT … FOR UPDATE` on the defect row.
+4. **What happens to the location and severity on merge?** The defect moves to the average of its
+   reports, and keeps the highest severity seen.
+5. **What is auto-verify and re-open?** At 3 reports a `reported` defect becomes `verified`
+   automatically; a new report on a defect fixed less than 30 days ago re-opens it.
+
+## B7: enrichment
+
+1. **Where does road type come from?** OpenStreetMap via the Overpass API: the nearest `highway`
+   way within 20 m, mapped to major/secondary/tertiary/residential.
+2. **What if Overpass is down?** Road class becomes `unknown` (R = 0.5) and the report still goes
+   through; lookups are cached by rounded coordinates.
+3. **How is "near a school or hospital" found?** A 200 m `ST_DWithin` query on the seeded
+   `sensitive_places` table.
+4. **How is the ward found?** `ST_Covers(ward boundary, point)`.
+5. **Why enrich only new defects?** The location of a merged defect moves by a few metres at most,
+   so the road, ward and nearby places don't change.
+
+## B8: priority
+
+1. **What is the formula?** S × R × (1 + 0.1·min(n, 10)) × (1 + 0.02·min(t, 30)) × B.
+2. **Why the caps?** So 50 reports or a year-old defect can't outrank a dangerous new pothole on a
+   main road: reports add at most ×2, age at most ×1.6.
+3. **How is the ranking explained?** Every term is stored in `priority_terms` and shown on the
+   detail screen, plus a reason line like "Dangerous · main road · near school · 6 reports".
+4. **Why recalculate nightly?** The age term t grows every day even when nothing else changes.
+5. **What happens when an engineer changes the weights?** A new `settings_versions` row is saved
+   (audit trail) and all open priorities are recalculated.
+
+## B9: staff API and auth
+
+1. **How do engineers log in?** Supabase Auth issues a JWT; FastAPI verifies its signature
+   (HS256 secret or the project's JWKS) and looks up the user's role in `profiles`.
+2. **How is the demo account kept read-only?** Every write endpoint depends on
+   `require_engineer`, which returns 403 `forbidden_demo` for the demo role.
+3. **Which status changes are allowed?** needs_review → reported/rejected; reported →
+   verified/assigned/rejected; verified → assigned/rejected; assigned → fixed/rejected. Anything
+   else is 409 `invalid_transition`. Fixed → reported happens only when a new report re-opens it.
+4. **How is the rank computed?** A window function, `rank() over (order by priority desc)`, over
+   open defects only, so filters don't change a defect's global rank.
+5. **How is the nightly endpoint protected?** A shared `CRON_SECRET` header known only to the
+   backend and the GitHub Actions secret store.
+
+## F1–F3: frontend
+
+1. **Why one React app for citizens and engineers?** One codebase and one deploy; admin screens
+   are lazy-loaded so the citizen flow stays small on phones.
+2. **Why is every string in en.json?** The Content Guidelines require it, and Hindi later becomes
+   a translation job. A test checks the copy rules (no "!", no emoji, no banned words).
+3. **How does the phone save data?** Photos are resized to 1280 px in the browser before upload.
+4. **How is severity shown accessibly?** Always a word + colour + icon; bars have
+   `role="meter"` with a text value; alerts use `aria-live`.
+5. **How do citizens track without an account?** The tracking code is saved in the phone's local
+   storage; the status page polls the API every 30 s.
+
+## D2–D3: deployment
+
+1. **Where does each part run?** React on Vercel, FastAPI in a container on Azure Container Apps
+   (scale to zero), Postgres/Storage/Auth on Supabase, models on the Hugging Face Hub.
+2. **What happens on a push to main?** CI runs lint and tests; the deploy workflow builds the
+   image, pushes it to GHCR, runs Alembic migrations and updates the container app.
+3. **What is a cold start?** With zero replicas, the first request starts a container and loads
+   the models (20–40 s). Models can be baked into the image to shorten it.
+4. **Why a nightly job?** It recalculates priorities, clears old IP hashes and keeps the free
+   Supabase project from pausing.
+5. **How are secrets handled?** Only in environment variables and GitHub/Azure secret stores;
+   `.env` is git-ignored and the browser only ever gets the anon key.
