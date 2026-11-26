@@ -5,7 +5,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import health, reports
+from app.api import health, reports, staff
 from app.core.config import get_settings
 from app.core.errors import install_error_handlers
 
@@ -29,6 +29,7 @@ def create_app() -> FastAPI:
     install_error_handlers(app)
     app.include_router(health.router)
     app.include_router(reports.router)
+    app.include_router(staff.router)
     if settings.environment == "development":
         from fastapi.staticfiles import StaticFiles
 
