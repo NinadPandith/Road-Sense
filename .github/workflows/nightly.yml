@@ -10,6 +10,8 @@ on:
 jobs:
   recalculate:
     runs-on: ubuntu-latest
+    # Skips quietly until the backend is deployed and the API_URL variable is set.
+    if: ${{ vars.API_URL != '' }}
     steps:
       - name: Call the protected endpoint (retries cover a cold start)
         env:
