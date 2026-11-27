@@ -100,3 +100,30 @@ def test_results_bundle(tmp_path):
     data = build(res, tmp_path / "out")
     assert data["e5"] == {"chosen_eps_m": 5} and data["e1"] is None
     assert (tmp_path / "out" / "results.json").exists()
+
+
+def test_publish_dataset_blurs_and_writes_card(tmp_path):
+    import sys
+    from pathlib import Path
+
+    from PIL import Image
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+    from publish_dataset import build
+
+    face = Path(__file__).resolve().parents[2] / "backend" / "tests" / "fixtures" / "face.jpg"
+    src = tmp_path / "local"
+    for split in ("train", "test"):
+        (src / "images" / split).mkdir(parents=True)
+        (src / "labels" / split).mkdir(parents=True)
+    exif = Image.Exif()
+    exif[0x010F] = "Phone"
+    Image.open(face).save(src / "images" / "train" / "a.jpg", exif=exif.tobytes())
+    (src / "labels" / "train" / "a.txt").write_text("3 0.5 0.5 0.2 0.2\n")
+    Image.open(face).save(src / "images" / "test" / "b.jpg")
+    out = tmp_path / "publish"
+    n, regions = build(src, out)
+    assert n == 2 and regions >= 2
+    assert not Image.open(out / "images" / "train" / "a.jpg").getexif()
+    card = (out / "README.md").read_text()
+    assert "| train | 1 | 0 | 0 | 0 | 1 |" in card

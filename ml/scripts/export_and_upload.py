@@ -51,6 +51,9 @@ def main() -> None:
         "sizes_mb": {k: round(v.stat().st_size / 1e6, 1) for k, v in files.items()},
     }
     (a.out / "model_info.json").write_text(json.dumps(meta, indent=2))
+    card = Path(__file__).resolve().parents[1] / "hf" / "model_card.md"
+    if card.exists():  # the repo's README on the Hub is the model card
+        shutil.copy2(card, a.out / "README.md")
     print(json.dumps(meta, indent=2))
 
     api = HfApi()
