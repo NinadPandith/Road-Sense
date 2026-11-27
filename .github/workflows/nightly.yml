@@ -1,7 +1,8 @@
 name: Nightly
 
 # D3: recalculate priorities (the age term grows every day), clear old IP hashes, and keep the
-# free Supabase project awake (it pauses after a week without activity).
+# free Supabase project from pausing (it pauses after a week without activity).
+# Reads API_URL and CRON_SECRET from the "production" environment; skips until API_URL is set.
 on:
   schedule:
     - cron: "37 20 * * *" # 02:07 IST
@@ -10,14 +11,17 @@ on:
 jobs:
   recalculate:
     runs-on: ubuntu-latest
-    # Skips quietly until the backend is deployed and the API_URL variable is set.
-    if: ${{ vars.API_URL != '' }}
+    environment: production
     steps:
       - name: Call the protected endpoint (retries cover a cold start)
         env:
           API_URL: ${{ vars.API_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
+          if [ -z "$API_URL" ]; then
+            echo "API_URL isn't set yet (backend not deployed); nothing to do."
+            exit 0
+          fi
           for i in 1 2 3 4 5; do
             if curl -fsS -X POST -H "x-cron-secret: $CRON_SECRET" "$API_URL/admin/recalculate"; then
               exit 0

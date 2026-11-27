@@ -1,0 +1,56 @@
+name: Set up database
+
+# One-click database setup (no laptop needed): creates the tables (Alembic migrations), adds the
+# default settings, and creates the engineer + demo users with their profiles.
+# Needs the production environment secrets: DATABASE_URL, SUPABASE_SERVICE_KEY,
+# ENGINEER_EMAIL, ENGINEER_PASSWORD, DEMO_PASSWORD, and the variable SUPABASE_URL.
+# Safe to run again: migrations and seeding skip what already exists.
+on:
+  workflow_dispatch:
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    environment: production
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      ENGINEER_EMAIL: ${{ secrets.ENGINEER_EMAIL }}
+      ENGINEER_PASSWORD: ${{ secrets.ENGINEER_PASSWORD }}
+      DEMO_EMAIL: ${{ vars.DEMO_EMAIL || 'demo@roadsense.app' }}
+      DEMO_PASSWORD: ${{ secrets.DEMO_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Check the secrets are set
+        run: |
+          missing=""
+          for v in DATABASE_URL SUPABASE_URL SUPABASE_SERVICE_KEY ENGINEER_EMAIL ENGINEER_PASSWORD DEMO_PASSWORD; do
+            [ -n "${!v}" ] || missing="$missing $v"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Missing in Settings > Environments > production:$missing"
+            exit 1
+          fi
+          case "$DATABASE_URL" in
+            postgresql+psycopg://*pooler.supabase.com:5432/*) ;;
+            *) echo "::error::DATABASE_URL must start with postgresql+psycopg:// and be the Session pooler address (port 5432)"; exit 1 ;;
+          esac
+      - run: uv sync --frozen --no-dev
+      - name: Create the tables
+        run: uv run alembic upgrade head
+      - name: Add default settings and the two users
+        run: uv run python -m scripts.seed --users
+      - name: Summary
+        run: |
+          {
+            echo "### Database ready"
+            echo "- Tables created (migrations 0001-0004)"
+            echo "- Settings version 1 added"
+            echo "- Engineer: $ENGINEER_EMAIL"
+            echo "- Demo: $DEMO_EMAIL"
+          } >> "$GITHUB_STEP_SUMMARY"

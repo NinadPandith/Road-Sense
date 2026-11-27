@@ -1,7 +1,9 @@
 name: Deploy backend
 
-# Builds the API image, pushes it to GitHub Container Registry, runs database migrations and
-# updates the Azure Container App. The frontend deploys itself through Vercel's GitHub app.
+# Builds the API image, pushes it to GitHub Container Registry, runs database migrations, and
+# updates the Azure Container App with the new image AND its settings (all keys live in GitHub's
+# "production" environment, so nothing is configured by hand in Azure).
+# The frontend deploys itself through Vercel's GitHub app.
 on:
   push:
     branches: [main]
@@ -11,7 +13,7 @@ on:
 permissions:
   contents: read
   packages: write
-  id-token: write
+  id-token: write # GitHub signs in to Azure with OIDC (no stored Azure password)
 
 env:
   IMAGE: ghcr.io/${{ github.repository_owner }}/roadsense-api
@@ -50,14 +52,44 @@ jobs:
 
       - uses: azure/login@v2
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Update the container app
+      - name: Update secrets in the container app
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          JWT_SECRET: ${{ secrets.SUPABASE_JWT_SECRET || 'unused' }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          IP_SALT: ${{ secrets.IP_HASH_SALT }}
+        run: |
+          az containerapp secret set \
+            --name "${{ vars.AZURE_CONTAINERAPP_NAME }}" \
+            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
+            --secrets database-url="$DATABASE_URL" service-key="$SERVICE_KEY" \
+                      jwt-secret="$JWT_SECRET" cron-secret="$CRON_SECRET" ip-salt="$IP_SALT" \
+            --output none
+
+      - name: Update image and settings
         run: |
           az containerapp update \
             --name "${{ vars.AZURE_CONTAINERAPP_NAME }}" \
             --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
-            --image "${{ env.IMAGE }}:${{ github.sha }}"
+            --image "${{ env.IMAGE }}:${{ github.sha }}" \
+            --set-env-vars \
+              DATABASE_URL=secretref:database-url \
+              SUPABASE_SERVICE_KEY=secretref:service-key \
+              SUPABASE_JWT_SECRET=secretref:jwt-secret \
+              CRON_SECRET=secretref:cron-secret \
+              IP_HASH_SALT=secretref:ip-salt \
+              SUPABASE_URL="${{ vars.SUPABASE_URL }}" \
+              PUBLIC_API_URL="${{ vars.API_URL }}" \
+              ALLOWED_ORIGINS="${{ vars.ALLOWED_ORIGINS || 'http://localhost:5173' }}" \
+              HF_MODEL_REPO="${{ vars.HF_MODEL_REPO }}" \
+              MODEL_VERSION="${{ vars.MODEL_VERSION || 'none-yet' }}" \
+              PILOT_AREA_NAME="${{ vars.PILOT_AREA_NAME || 'the pilot area' }}" \
+            --output none
 
       - name: Smoke test
         run: |
@@ -65,4 +97,5 @@ jobs:
             curl -fsS "${{ vars.API_URL }}/health" && exit 0
             sleep 10
           done
+          echo "::error::The API didn't answer /health. If the log says 'unauthorized' for the image, make the ghcr.io package public (see docs/deployment.md)."
           exit 1

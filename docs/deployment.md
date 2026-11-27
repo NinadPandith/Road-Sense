@@ -1,208 +1,150 @@
 # Deployment (D2, D3)
 
 Frontend on Vercel, backend container on Azure Container Apps, data on Supabase, models on the
-Hugging Face Hub. Everything is free-tier. Allow about 2 hours the first time.
+Hugging Face Hub. Everything is free-tier. **No software to install on your laptop**: the database
+setup and the backend deploy run in GitHub Actions, and Azure is set up from Azure Cloud Shell in
+the browser.
 
-Order: **Supabase → GitHub image → Azure → Vercel → connect them → check.**
-Keep a private note of every key; never commit or paste keys into chat.
+All keys live in **one place**: GitHub → repository **Settings → Environments → `production`**.
+Never paste keys into chats, issues or code.
 
-## 0. Before you start
+## 1. Supabase (in the browser)
 
-- GitHub Student Developer Pack approved (needed for Azure for Students without a card).
-- Install the [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) and
-  [uv](https://docs.astral.sh/uv/) on your laptop.
+1. New project, region **South Asia (Mumbai)**, strong database password (letters and numbers is
+   easiest). Data access: keep *Enable Data API*, untick *Grant API access to new tables
+   automatically*, tick *Enable RLS on new tables automatically*.
+2. **Database → Extensions** → switch on **postgis**.
+3. **Storage → New bucket**: `report-images` (public), `fixed-photos` (public), `survey-uploads`
+   (private).
+4. Collect these (Project Settings):
+   - **Project URL**: `https://<ref>.supabase.co`
+   - **API Keys → Legacy API keys**: `anon` and `service_role`
+   - **JWT Keys**: the *Legacy JWT secret* if shown
+5. **Connect** (top bar) → **Session pooler** connection string (port **5432**). Put your password
+   in place of `[YOUR-PASSWORD]` and change the start to `postgresql+psycopg://`. This is
+   `DATABASE_URL`. Special characters in the password must be encoded (`@`→`%40`, `#`→`%23`,
+   `/`→`%2F`, `:`→`%3A`, `?`→`%3F`, `%`→`%25`, `&`→`%26`).
 
-## 1. Supabase (database, storage, auth)
+## 2. GitHub: the `production` environment
 
-1. [supabase.com](https://supabase.com) → **New project**. Region: **Mumbai (ap-south-1)**.
-   Save the database password.
-2. **Database → Extensions** → enable **postgis**.
-3. **Storage → New bucket**, three times:
-   `report-images` (public), `fixed-photos` (public), `survey-uploads` (private).
-4. **Project Settings → API Keys**. Note the **Project URL**, the **anon** key and the
-   **service_role** key (under *Legacy API keys* if your project shows new-style keys; the backend
-   uses the legacy JWT keys).
-5. **Project Settings → JWT** (or *JWT Keys*): if a **Legacy JWT secret** is shown, note it. Newer
-   projects sign with asymmetric keys, which the backend verifies automatically; then leave
-   `SUPABASE_JWT_SECRET` empty.
-6. **Connect** button (top bar) → **Session pooler** connection string. It looks like
-   `postgresql://postgres.<ref>:<password>@aws-0-ap-south-1.pooler.supabase.com:5432/postgres`.
-   Change the start to `postgresql+psycopg://`. This is your `DATABASE_URL`.
-   Use the **session** pooler (port 5432): the direct connection is IPv6-only (GitHub Actions and
-   Azure can't reach it), and the transaction pooler (6543) breaks the merge locks.
-7. Create the tables from your laptop:
+Repository → **Settings → Environments → New environment** → name it `production`. Add:
+
+**Environment secrets**
+
+| Name | Value |
+|------|-------|
+| `DATABASE_URL` | from step 1.5 |
+| `SUPABASE_SERVICE_KEY` | the legacy `service_role` key |
+| `SUPABASE_JWT_SECRET` | the legacy JWT secret (leave out if your project has none) |
+| `CRON_SECRET` | a long random string |
+| `IP_HASH_SALT` | another long random string |
+| `ENGINEER_EMAIL` | your email (your engineer login) |
+| `ENGINEER_PASSWORD` | your engineer password |
+| `DEMO_PASSWORD` | a simple password for the public demo account, e.g. `roadsense-demo` |
+
+**Environment variables**
+
+| Name | Value |
+|------|-------|
+| `SUPABASE_URL` | `https://<ref>.supabase.co` |
+| `DEMO_EMAIL` | `demo@roadsense.app` (optional; this is the default) |
+| `AZURE_CONTAINERAPP_NAME` | `roadsense-api` |
+| `AZURE_RESOURCE_GROUP` | `roadsense` |
+
+Random strings, in Windows PowerShell:
+
+```powershell
+$b = New-Object byte[] 24; [Security.Cryptography.RNGCryptoServiceProvider]::new().GetBytes($b); ($b | ForEach-Object { $_.ToString('x2') }) -join ''
+```
+
+## 3. Set up the database (one click)
+
+GitHub → **Actions → Set up database → Run workflow** (pick branch `claude/eloquent-gates-een41c`
+until it's merged to `main`). It checks the secrets, creates the tables, adds the default settings
+and creates the engineer and demo users. The run summary lists what it did. Safe to run again.
+
+## 4. Azure (in the browser, about 10 minutes)
+
+1. Activate **Azure for Students** through the GitHub Student Developer Pack (no card needed).
+2. Open [portal.azure.com](https://portal.azure.com) → the **>_** (Cloud Shell) icon in the top
+   bar → **Bash**. If asked, create the storage it offers ("Mount storage account" / "No storage
+   account required" both work).
+3. Paste and press Enter:
 
 ```bash
-cd backend && uv sync
+curl -fsSL https://raw.githubusercontent.com/NinadPandith/Road-Sense/claude/eloquent-gates-een41c/scripts/azure-setup.sh | bash
 ```
 
-```bash
-cd backend && DATABASE_URL='postgresql+psycopg://postgres.<ref>:<password>@aws-0-ap-south-1.pooler.supabase.com:5432/postgres' uv run alembic upgrade head
-```
+4. At the end it prints four values. Add them as **variables** in the GitHub `production`
+   environment: `API_URL`, `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`.
+   They are IDs, not passwords. GitHub signs in to Azure with OIDC, so no Azure password is stored.
 
-```bash
-cd backend && DATABASE_URL='<same as above>' uv run python -m scripts.seed
-```
+## 5. Deploy the backend (one click)
 
-   The seed adds settings version 1. With `data/pilot_area.geojson` in place, add `--fetch-osm`
-   to load schools and hospitals.
-8. **Authentication → Users → Add user** twice: your engineer account and the demo account
-   (`demo@roadsense.app`, a simple password; it is shown on the login screen). Tick
-   *Auto confirm user*. Copy each user's **UID**.
-9. **SQL Editor** → run, with the two UIDs:
+1. GitHub → **Actions → Deploy backend → Run workflow** (same branch). It builds the image, runs
+   the migrations, and configures and updates the Azure app from the `production` environment.
+2. The first run fails at the smoke test because the new image is private. Open your GitHub
+   profile → **Packages → roadsense-api → Package settings → Danger zone → Change visibility →
+   Public**, then **Re-run failed jobs**.
+3. Open `<API_URL>/health`; it should say `"status":"ok"` (the first request after idle can take
+   20–40 s).
 
-```sql
-insert into profiles (id, full_name, role) values
-  ('<your-uid>', 'Your Name', 'engineer'),
-  ('<demo-uid>', 'Demo user', 'demo');
-```
+## 6. Vercel (in the browser)
 
-## 2. GitHub: build the backend image
-
-1. Repository **Settings → Environments → New environment** named `production`. Add:
-
-| Kind | Name | Value |
-|------|------|-------|
-| secret | `DATABASE_URL` | the session-pooler URL from step 1.6 |
-| secret | `CRON_SECRET` | a long random string (keep it; Azure needs the same value) |
-| secret | `AZURE_CREDENTIALS` | added in step 3.4 |
-| variable | `AZURE_CONTAINERAPP_NAME` | `roadsense-api` |
-| variable | `AZURE_RESOURCE_GROUP` | `roadsense` |
-| variable | `API_URL` | added in step 3.5 |
-| variable | `HF_MODEL_REPO` | later, once models exist (bakes them into the image) |
-
-2. Also add `API_URL` and `CRON_SECRET` as **repository** variable/secret (the nightly job reads them).
-
-## 3. Azure Container Apps (backend)
-
-1. Activate **Azure for Students** through the Student Developer Pack, then sign in:
-
-```bash
-az login
-```
-
-```bash
-az extension add --name containerapp --upgrade
-```
-
-```bash
-az provider register --namespace Microsoft.App && az provider register --namespace Microsoft.OperationalInsights
-```
-
-2. Create the resource group and environment:
-
-```bash
-az group create --name roadsense --location centralindia
-```
-
-```bash
-az containerapp env create --name roadsense-env --resource-group roadsense --location centralindia
-```
-
-3. Create the app with Microsoft's placeholder image (the deploy workflow swaps in RoadSense):
-
-```bash
-az containerapp create --name roadsense-api --resource-group roadsense --environment roadsense-env --image mcr.microsoft.com/k8se/quickstart:latest --target-port 8000 --ingress external --cpu 1 --memory 2Gi --min-replicas 0 --max-replicas 1
-```
-
-4. Create the credentials GitHub uses, and paste the JSON output into the `AZURE_CREDENTIALS`
-   secret (step 2.1). Get your subscription ID with `az account show --query id -o tsv`.
-
-```bash
-az ad sp create-for-rbac --name roadsense-deploy --role contributor --scopes /subscriptions/<subscription-id>/resourceGroups/roadsense --sdk-auth
-```
-
-5. Get the API address and put `https://<that address>` into the `API_URL` variables (step 2):
-
-```bash
-az containerapp show --name roadsense-api --resource-group roadsense --query properties.configuration.ingress.fqdn -o tsv
-```
-
-6. Add the backend's settings. Secrets first, then the environment variables that use them
-   (replace every `<...>`):
-
-```bash
-az containerapp secret set --name roadsense-api --resource-group roadsense --secrets database-url='<DATABASE_URL>' service-key='<service_role key>' jwt-secret='<legacy JWT secret, or the word unused>' cron-secret='<CRON_SECRET>' ip-salt='<another random string>'
-```
-
-```bash
-az containerapp update --name roadsense-api --resource-group roadsense --set-env-vars DATABASE_URL=secretref:database-url SUPABASE_SERVICE_KEY=secretref:service-key SUPABASE_JWT_SECRET=secretref:jwt-secret CRON_SECRET=secretref:cron-secret IP_HASH_SALT=secretref:ip-salt SUPABASE_URL=https://<ref>.supabase.co PUBLIC_API_URL=https://<api-address> ALLOWED_ORIGINS=http://localhost:5173 MODEL_VERSION=none-yet PILOT_AREA_NAME="the pilot area"
-```
-
-   Azure doesn't accept empty secrets: if your project has no legacy JWT secret (step 1.5), use
-   the word `unused`; the backend then verifies tokens with Supabase's public keys.
-   `ALLOWED_ORIGINS` gets the Vercel address in step 5. Add `HF_MODEL_REPO=<hf-user>/roadsense-models`
-   once models exist.
-
-## 4. Deploy the backend
-
-1. GitHub → **Actions → Deploy backend → Run workflow** (choose your branch). It builds the image,
-   pushes it to GitHub Container Registry, runs the migrations and updates the container app.
-   After merging to `main`, it runs on every push that changes `backend/`.
-2. The first run's "Update the container app" step fails because the image is private. Open your
-   GitHub profile → **Packages → roadsense-api → Package settings → Change visibility → Public**,
-   then **Re-run failed jobs**.
-3. Check: `https://<api-address>/health` returns `{"status":"ok",...}` (the first request after
-   idle can take 20–40 s) and `https://<api-address>/docs` shows the API.
-
-## 5. Vercel (frontend)
-
-1. [vercel.com](https://vercel.com) → **Add New → Project** → import the repository.
-2. **Root Directory: `frontend`**. Framework: Vite (detected). Leave the build settings alone;
-   `vercel.json` sets them.
+1. [vercel.com](https://vercel.com) → sign in with GitHub → **Add New → Project** → import
+   `Road-Sense`.
+2. **Root Directory: `frontend`**. Leave the build settings alone (`vercel.json` sets them).
 3. **Environment Variables**:
 
-| Variable | Value |
-|----------|-------|
-| `VITE_API_URL` | `https://<api-address>` |
+| Name | Value |
+|------|-------|
+| `VITE_API_URL` | your `API_URL` |
 | `VITE_SUPABASE_URL` | `https://<ref>.supabase.co` |
-| `VITE_SUPABASE_ANON_KEY` | the anon key (public by design; it can only read the public view) |
-| `VITE_DEMO_EMAIL` / `VITE_DEMO_PASSWORD` | the demo account from step 1.8 |
+| `VITE_SUPABASE_ANON_KEY` | the legacy `anon` key (public by design) |
+| `VITE_DEMO_EMAIL` | `demo@roadsense.app` |
+| `VITE_DEMO_PASSWORD` | the same as `DEMO_PASSWORD` (it's shown on the login screen) |
 | `VITE_PILOT_AREA_NAME` | e.g. `Jayanagar–BTM Layout` |
 | `VITE_MAP_CENTER` | `lat,lon` of your route, e.g. `12.9250,77.5938` |
 
-4. **Deploy**. Note the address, e.g. `https://roadsense.vercel.app`.
-5. Vercel builds from the branch you pick as the production branch (Settings → Git); set it to
-   your working branch until you merge to `main`.
+4. **Deploy**, then **Settings → Git → Production Branch**: your working branch until you merge to
+   `main`.
 
-## 6. Connect them
+## 7. Connect them
 
-1. Allow the frontend to call the API:
-
-```bash
-az containerapp update --name roadsense-api --resource-group roadsense --set-env-vars ALLOWED_ORIGINS=https://<your-app>.vercel.app
-```
-
+1. GitHub `production` environment → add the variable `ALLOWED_ORIGINS` =
+   `https://<your-app>.vercel.app` (no trailing slash) → run **Deploy backend** again.
 2. Supabase → **Authentication → URL Configuration** → Site URL `https://<your-app>.vercel.app`.
-3. Supabase → **Database → Publications → supabase_realtime**: `defects` should be listed
-   (migration 0004 adds it). Live dashboard updates need it.
 
-## 7. Check it works
+## 8. Check it works
 
-- [ ] `https://<api-address>/health` is ok
-- [ ] The app opens on your phone over mobile data (not just Wi-Fi)
-- [ ] **Engineer sign in** works with your account and with **Try the demo account**
-- [ ] The dashboard, repair list, analytics and settings screens load
+- [ ] `<API_URL>/health` says ok, and `<API_URL>/docs` shows the API
+- [ ] The app opens on your phone over mobile data
+- [ ] **Engineer sign in** works, and so does **Try the demo account**
+- [ ] Dashboard, repair list, analytics and settings load
 - [ ] GitHub → Actions → **Nightly → Run workflow** succeeds (ticks D3)
-- [ ] Photo reports: these need trained models. Until `HF_MODEL_REPO` is set (after the Kaggle
-      notebook), submitting a photo shows an error. Everything else works.
+- [ ] Photo reports need trained models: until `HF_MODEL_REPO` is set, submitting a photo
+      shows an error. Everything else works.
 
 ## After the models exist
 
-Set the `HF_MODEL_REPO` repository variable and the container app variables `HF_MODEL_REPO` and
-`MODEL_VERSION`, run **Deploy backend** again (it bakes the models into the image), and copy
-`yolo-nano.onnx` into `frontend/public/models/` for Drive mode (or host it and adjust the URL).
+Add the variables `HF_MODEL_REPO` (`<hf-user>/roadsense-models`) and `MODEL_VERSION` to the
+`production` environment and run **Deploy backend** (it bakes the models into the image). Copy
+`yolo-nano.onnx` into `frontend/public/models/` for Drive mode.
 
 ## Before a demo
 
-Open the app 5–10 minutes early: scale-to-zero means the first request loads the models (20–40 s).
+Open the app 5–10 minutes early: scale-to-zero means the first request loads the models.
 
 ## Troubleshooting
 
 | Symptom | Fix |
 |---------|-----|
-| Deploy fails at "Run migrations": connection refused or timed out | Use the **session pooler** URL, not the direct one |
-| Container app shows "Activation failed" | `az containerapp logs show --name roadsense-api --resource-group roadsense --follow`; usually a missing env var |
-| Browser console: CORS error | `ALLOWED_ORIGINS` must exactly match the Vercel address (https, no trailing slash) |
-| Sign-in works but screens say "Please sign in again" | The user has no row in `profiles` (step 1.9), or the JWT secret is wrong |
-| Map is empty for the public | Normal until there are open defects |
+| *Set up database* says a secret is missing | Add it under Settings → Environments → **production** (not repository secrets) |
+| Migrations: `password authentication failed` | Wrong password in `DATABASE_URL`, or the `[ ]` brackets are still there |
+| Migrations: timeout / can't resolve host | Use the **Session pooler** address (port 5432), not Direct |
+| `type "geography" does not exist` | Switch on PostGIS (step 1.2) |
+| Azure login fails in *Deploy backend* (`AADSTS70021`, no matching federated identity) | Run the Cloud Shell script again; the GitHub environment must be named exactly `production` |
+| Smoke test fails, logs say `unauthorized` pulling the image | Make the `roadsense-api` package public (step 5.2) |
+| Browser console: CORS error | `ALLOWED_ORIGINS` must exactly match the Vercel address, then redeploy |
+| Sign-in works but screens say "Please sign in again" | The user has no row in `profiles` (re-run *Set up database*) or the JWT secret is wrong |
+| See the backend's logs | Cloud Shell: `az containerapp logs show -n roadsense-api -g roadsense --follow` |
