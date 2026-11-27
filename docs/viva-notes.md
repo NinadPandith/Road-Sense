@@ -249,3 +249,48 @@ Add a section per task ID as it is finished.
    server, quickly and reliably in CI; the full stack was also checked by hand against PostGIS.
 5. **What else supports outdoor use?** 16 px text, 44 px touch targets, strong contrast and
    word + icon for every severity.
+
+## Top 20 questions for the viva (final pass)
+
+Short answers to rehearse out loud. The module sections above have more detail.
+
+1. **What is new in your project?** Detection is common; RoadSense adds a validated severity score,
+   duplicate merging and an explainable repair priority, in a deployed system.
+2. **Why YOLO and not Faster R-CNN?** Single-stage, fast enough for video and phones, and easy to
+   train and export; E1 compares sizes for accuracy versus speed.
+3. **What is mAP@0.5?** Mean over classes of the area under the precision–recall curve, where a
+   detection counts as correct if its box overlaps the true box with IoU ≥ 0.5.
+4. **Why did you need local data?** RDD2022's Indian images differ from my city's roads,
+   lighting and camera; E2 measures the gain.
+5. **How did you avoid leakage in the local split?** Split by 500 m route segment, not by frame,
+   so near-identical neighbouring frames never land in both train and test.
+6. **Explain the severity formula.** S = 0.35·size + 0.35·depth + 0.20·type + 0.10·position,
+   each normalised to 0–1; Minor < 0.40 ≤ Moderate < 0.70 ≤ Dangerous.
+7. **How do you estimate depth from one photo?** Depth Anything V2 gives relative inverse depth;
+   I compare the inside of the box with a ring of road around it. It's relative, never centimetres.
+8. **How do you know the severity score is right?** 200 hand labels made before seeing scores;
+   accuracy and weighted kappa on a held-out half; weights tuned on the other half.
+9. **Why weighted kappa?** It corrects for chance and penalises far-off mistakes more.
+10. **What did the ablation show?** [[Your E4 result: which factor matters most, and depth's real
+    contribution.]]
+11. **How does merging work?** PostGIS finds the nearest open defect within 5 m; that is online
+    DBSCAN with ε = 5 m. Locks stop two simultaneous reports creating two defects.
+12. **Why 5 m?** Phone GPS error is 5–15 m; E5's sweep shows the trade-off between duplicates
+    and wrongly merged neighbours.
+13. **Explain the priority formula and its caps.** Severity × road × reports × age × school
+    boost; caps keep reports (×2) and age (×1.6) from outranking a dangerous new pothole.
+14. **How do you protect privacy?** Blur faces and plates in memory before storing; no EXIF; no
+    accounts; IPs only as salted hashes for 30 days.
+15. **How does Drive mode work offline?** Frames wait in IndexedDB and upload later with a client
+    ID, so retries never duplicate.
+16. **Why run the model in the browser?** No app install, no server cost per frame, works on any
+    phone; ONNX lets one model file run everywhere.
+17. **How did you test it?** 93 backend tests on real PostGIS, unit tests, end-to-end tests,
+    automated accessibility checks, and manual phone tests; all run in CI.
+18. **What are the main limitations?** Relative depth, one city's data, GPS error, false positives
+    on speed breakers and wet patches, classical face detection.
+19. **What does it cost to run?** ₹0: free tiers of Vercel, Supabase, Azure for Students, Kaggle
+    and Hugging Face.
+20. **How much did AI coding tools write, and how do you know it's correct?** [[Answer honestly:
+    you designed it from your PRD, reviewed each module, wrote these notes, and every module has
+    tests that run on every change.]]
